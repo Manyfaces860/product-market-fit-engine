@@ -7,6 +7,8 @@ import { ArrowLeft, Users, Check, Flame, Share2, Plus, AlertTriangle, ArrowUp, E
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_COPY } from '@/lib/config/copy';
 import { PageScanner, ButtonSpinner } from '@/components/Loader';
+import { fetchWithRetry } from '@/lib/fetch-retry';
+import AlertModal from '@/components/AlertModal';
 
 interface Solution {
   id: string;
@@ -53,17 +55,58 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
   const [adjacent, setAdjacent] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const sanitizeError = (error: any, defaultMessage: string): string => {
+    const msg = error?.message || '';
+    const name = error?.name || '';
+    
+    // Catch rate limiting and convert to friendly guidance
+    if (msg.includes('429') || msg.includes('Too Many Requests') || msg.includes('rate limit')) {
+      return 'You are making requests too quickly. Please wait a moment before trying again to keep usage fair!';
+    }
+
+    // Catch abort/timeout errors and convert to friendly guidance
+    const isTimeout = name === 'AbortError' || msg.includes('aborted') || msg.includes('abort') || msg.includes('timeout') || msg.includes('timed out');
+    if (isTimeout) {
+      return 'The request took too long to respond. Please check your network connection and try again.';
+    }
+
+    const isCodeError = 
+      msg.includes('fetch failed') ||
+      msg.includes('Topology') ||
+      msg.includes('ReplicaSet') ||
+      msg.includes('SSL') ||
+      msg.includes('connect') ||
+      msg.includes('NetworkError') ||
+      msg.includes('status 5') ||
+      msg.includes('Server Error');
+    
+    if (isCodeError) {
+      return `${defaultMessage} Please check your connection and manually try again.`;
+    }
+    return msg || defaultMessage;
+  };
 
   // Me Too workflow states
   const [submitting, setSubmitting] = useState(false);
   const [customPhrasing, setCustomPhrasing] = useState('');
   const [showPhrasingInput, setShowPhrasingInput] = useState(false);
   const [voted, setVoted] = useState(false);
+  const [meTooError, setMeTooError] = useState<string | null>(null);
+
+  // Custom Alert Modal states
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    type: 'success' as 'success' | 'error' | 'info',
+    title: '',
+    message: ''
+  });
 
   useEffect(() => {
     async function loadDetails() {
       try {
-        const res = await fetch(`/api/clusters/${id}`);
+        const res = await fetchWithRetry(`/api/clusters/${id}`);
         if (!res.ok) {
           throw new Error('Failed to retrieve cluster metrics.');
         }
@@ -71,13 +114,14 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
         setCluster(data.cluster);
         setAdjacent(data.adjacent || []);
       } catch (err: any) {
-        setError(err.message);
+        console.error(err);
+        setError(sanitizeError(err, 'We could not retrieve details for this problem group.'));
       } finally {
         setLoading(false);
       }
     }
     loadDetails();
-  }, [id]);
+  }, [id, refreshTrigger]);
 
   useEffect(() => {
     if (cluster && userId) {
@@ -116,7 +160,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     const method = isEditing ? 'PATCH' : 'POST';
 
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetchWithRetry(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -142,7 +186,8 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       setSolIconUrl('');
       setEditingSolutionId(null);
     } catch (err: any) {
-      setSolutionError(err.message);
+      console.error(err);
+      setSolutionError(sanitizeError(err, 'We could not publish your product solution listing.'));
     } finally {
       setSubmittingSolution(false);
     }
@@ -156,7 +201,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     setDeletingIds(nextDeleting);
 
     try {
-      const res = await fetch(`/api/clusters/${id}/solutions/${solutionId}`, {
+      const res = await fetchWithRetry(`/api/clusters/${id}/solutions/${solutionId}`, {
         method: 'DELETE',
       });
 
@@ -166,9 +211,20 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       }
 
       setCluster(data.cluster);
-      alert('Solution successfully deleted.');
+      setAlertModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Solution Deleted',
+        message: 'Your listed product solution has been successfully removed from this problem group.'
+      });
     } catch (err: any) {
-      alert(err.message);
+      console.error(err);
+      setAlertModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Deletion Failed',
+        message: sanitizeError(err, 'Failed to delete the listed product.')
+      });
     } finally {
       const nextDeleting = new Set(deletingIds);
       nextDeleting.delete(solutionId);
@@ -190,7 +246,12 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
 
   const handleSolutionUpvote = async (solutionId: string) => {
     if (!userId) {
-      alert('You must be signed in to upvote solutions!');
+      setAlertModal({
+        isOpen: true,
+        type: 'info',
+        title: 'Authentication Required',
+        message: 'You must be signed in to upvote listed product solutions!'
+      });
       return;
     }
     
@@ -202,7 +263,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     setUpvotingIds(updatedUpvoting);
 
     try {
-      const res = await fetch(`/api/clusters/${id}/solutions/${solutionId}/upvote`, {
+      const res = await fetchWithRetry(`/api/clusters/${id}/solutions/${solutionId}/upvote`, {
         method: 'POST',
       });
 
@@ -213,7 +274,13 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
 
       setCluster(data.cluster);
     } catch (err: any) {
-      alert(err.message);
+      console.error(err);
+      setAlertModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Upvote Failed',
+        message: sanitizeError(err, 'Failed to record your upvote.')
+      });
     } finally {
       const finishedUpvoting = new Set(upvotingIds);
       finishedUpvoting.delete(solutionId);
@@ -237,7 +304,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
   const fetchReviews = async (solutionId: string) => {
     setLoadingReviews(prev => ({ ...prev, [solutionId]: true }));
     try {
-      const res = await fetch(`/api/clusters/${id}/solutions/${solutionId}/reviews`);
+      const res = await fetchWithRetry(`/api/clusters/${id}/solutions/${solutionId}/reviews`);
       const data = await res.json();
       if (res.ok) {
         setSolutionReviews(prev => ({ ...prev, [solutionId]: data.reviews || [] }));
@@ -255,7 +322,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     setReviewError(null);
 
     try {
-      const res = await fetch(`/api/clusters/${id}/solutions/${solutionId}/reviews`, {
+      const res = await fetchWithRetry(`/api/clusters/${id}/solutions/${solutionId}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -284,7 +351,8 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       setRevName('');
       setShowReviewForm(null);
     } catch (err: any) {
-      setReviewError(err.message);
+      console.error(err);
+      setReviewError(sanitizeError(err, 'Could not post your product review.'));
     } finally {
       setSubmittingReview(false);
     }
@@ -306,10 +374,10 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
   const handleMeTooSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    setError(null);
+    setMeTooError(null);
 
     try {
-      const res = await fetch(`/api/clusters/${id}`, {
+      const res = await fetchWithRetry(`/api/clusters/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -327,7 +395,8 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       setCustomPhrasing('');
       setShowPhrasingInput(false);
     } catch (err: any) {
-      setError(err.message);
+      console.error(err);
+      setMeTooError(sanitizeError(err, 'Could not register your co-sign feedback.'));
     } finally {
       setSubmitting(false);
     }
@@ -341,16 +410,28 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
 
   if (error || !cluster) {
     return (
-      <div className="mx-auto max-w-xl text-center py-32 px-4">
-        <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-        <h1 className="text-xl font-bold font-sans text-slate-200">Error Loading Signal</h1>
-        <p className="text-slate-400 text-xs mt-2">{error || 'Signal not found in index.'}</p>
-        <Link
-          href="/browse"
-          className="inline-block mt-6 font-mono text-xs font-bold uppercase bg-white/10 hover:bg-white/15 px-4 py-2 rounded-lg"
-        >
-          Return to Browse
-        </Link>
+      <div className="mx-auto max-w-xl text-center py-32 px-4 select-none animate-fade-in">
+        <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4 animate-pulse" />
+        <h1 className="text-xl font-bold font-sans text-slate-200">Error Loading Pain Point</h1>
+        <p className="text-slate-400 text-xs mt-2 leading-relaxed">{error || 'Problem group not found in index.'}</p>
+        <div className="mt-8 flex gap-4 justify-center">
+          <Link
+            href="/browse"
+            className="font-mono text-xs font-bold uppercase bg-white/5 hover:bg-white/10 px-5 py-2.5 rounded-xl border border-white/5 text-slate-200 cursor-pointer"
+          >
+            Return to Browse
+          </Link>
+          <button
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              setRefreshTrigger(prev => prev + 1);
+            }}
+            className="font-mono text-xs font-bold uppercase bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 px-5 py-2.5 rounded-xl cursor-pointer"
+          >
+            Retry Load
+          </button>
+        </div>
       </div>
     );
   }
@@ -425,7 +506,12 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
               <button
                 onClick={() => {
                   if (!userId) {
-                    alert('You must be signed in to submit a solution!');
+                    setAlertModal({
+                      isOpen: true,
+                      type: 'info',
+                      title: 'Authentication Required',
+                      message: 'You must be signed in to list your product solution!'
+                    });
                     return;
                   }
                   setSolutionSuccess(false);
@@ -725,7 +811,12 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                 <button
                   onClick={() => {
                     if (!userId) {
-                      alert('You must be signed in to submit a solution!');
+                      setAlertModal({
+                        isOpen: true,
+                        type: 'info',
+                        title: 'Authentication Required',
+                        message: 'You must be signed in to list your product solution!'
+                      });
                       return;
                     }
                     setSolutionSuccess(false);
@@ -868,6 +959,18 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Local Me Too action error panel */}
+              {meTooError && (
+                <motion.div 
+                  className="mt-4 p-3.5 bg-red-950/40 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-300 text-[10px] text-left"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" />
+                  <span>{meTooError}</span>
+                </motion.div>
+              )}
             </div>
           </div>
 
@@ -1078,6 +1181,15 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           </div>
         )}
       </AnimatePresence>
+
+      {/* Custom Operations Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        type={alertModal.type}
+        title={alertModal.title}
+        message={alertModal.message}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+      />
 
     </div>
   );

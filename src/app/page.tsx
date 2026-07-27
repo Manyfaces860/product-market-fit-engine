@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { APP_COPY } from '@/lib/config/copy';
 import { ButtonSpinner, PageScanner } from '@/components/Loader';
+import { fetchWithRetry } from '@/lib/fetch-retry';
+import AlertModal from '@/components/AlertModal';
 import { useAuth, SignInButton, Show } from '@clerk/nextjs';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -55,8 +57,49 @@ export default function Home() {
   const [trending, setTrending] = useState<Cluster[]>([]);
   // const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submittingMessage, setSubmittingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  
+  // Custom Alert Modal states
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    type: 'success' as 'success' | 'error' | 'info',
+    title: '',
+    message: ''
+  });
+
+  const sanitizeError = (error: any, defaultMessage: string): string => {
+    const msg = error?.message || '';
+    const name = error?.name || '';
+    
+    // Catch rate limiting and convert to friendly guidance
+    if (msg.includes('429') || msg.includes('Too Many Requests') || msg.includes('rate limit')) {
+      return 'You are making requests too quickly. Please wait a moment before trying again to keep usage fair!';
+    }
+
+    // Catch abort/timeout errors and convert to friendly guidance
+    const isTimeout = name === 'AbortError' || msg.includes('aborted') || msg.includes('abort') || msg.includes('timeout') || msg.includes('timed out');
+    if (isTimeout) {
+      return 'The request took too long to respond. Please check your network connection and try again.';
+    }
+
+    const isCodeError = 
+      msg.includes('fetch failed') ||
+      msg.includes('Topology') ||
+      msg.includes('ReplicaSet') ||
+      msg.includes('SSL') ||
+      msg.includes('connect') ||
+      msg.includes('NetworkError') ||
+      msg.includes('status 5') ||
+      msg.includes('Server Error');
+    
+    if (isCodeError) {
+      return `${defaultMessage} Please check your connection and manually try again.`;
+    }
+    return msg || defaultMessage;
+  };
   
   // Submission flow states
   const [draft, setDraft] = useState<DraftResult | null>(null);
@@ -91,18 +134,20 @@ export default function Home() {
     if (isQueryTooLong) return;
 
     setLoading(true);
+    setLoadingMessage(APP_COPY.home.submitButtonLoading);
     setError(null);
     setDraft(null);
     setSuccessResult(null);
 
     try {
-      const response = await fetch('/api/problems', {
+      const response = await fetchWithRetry('/api/problems', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: inputText,
           draft: true,
         }),
+        onRetry: (attempt) => setLoadingMessage(`Retrying... (Attempt ${attempt}/3)`),
       });
 
       const data = await response.json();
@@ -115,9 +160,11 @@ export default function Home() {
       setSelectedCategory(data.proposedCategory);
       setCustomCanonical(data.proposedCanonicalText);
     } catch (err: any) {
-      setError(err.message);
+      console.error(err);
+      setError(sanitizeError(err, 'We are experiencing temporary database latency.'));
     } finally {
       setLoading(false);
+      setLoadingMessage('');
     }
   };
 
@@ -126,6 +173,7 @@ export default function Home() {
     if (!isSignedIn || !draft) return;
 
     setSubmitting(true);
+    setSubmittingMessage(APP_COPY.draftResult.publishButtonLoading);
     setError(null);
 
     const matchingCategoryObj = DEFAULT_TAXONOMY.find(c => c.id === selectedCategory) || {
@@ -135,7 +183,7 @@ export default function Home() {
     };
 
     try {
-      const response = await fetch('/api/problems', {
+      const response = await fetchWithRetry('/api/problems', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -146,6 +194,7 @@ export default function Home() {
           confirmedCategoryDescription: matchingCategoryObj.description,
           confirmedCanonicalText: customCanonical,
         }),
+        onRetry: (attempt) => setSubmittingMessage(`Retrying... (Attempt ${attempt}/3)`),
       });
 
       const data = await response.json();
@@ -160,7 +209,7 @@ export default function Home() {
       });
       
       // Refresh home data
-      const clustersRes = await fetch('/api/clusters');
+      const clustersRes = await fetchWithRetry('/api/clusters');
       if (clustersRes.ok) {
         const clusters = await clustersRes.json();
         setTrending(clusters.slice(0, 4));
@@ -170,23 +219,30 @@ export default function Home() {
       setInputText('');
       setDraft(null);
     } catch (err: any) {
-      setError(err.message);
+      console.error(err);
+      setError(sanitizeError(err, 'We could not complete publishing.'));
     } finally {
       setSubmitting(false);
+      setSubmittingMessage('');
     }
   };
 
   const handleSeedDatabase = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/seed');
+      const res = await fetchWithRetry('/api/seed');
       if (res.ok) {
-        const clustersRes = await fetch('/api/clusters');
+        const clustersRes = await fetchWithRetry('/api/clusters');
         if (clustersRes.ok) {
           const clusters = await clustersRes.json();
           setTrending(clusters.slice(0, 4));
         }
-        alert('Database successfully seeded with realistic sample problem clusters!');
+        setAlertModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Seeding Completed!',
+          message: 'The Pinecone index has been populated with 5 professional, high-signal niches and their phrasing variants.'
+        });
       }
     } catch (err) {
       console.error(err);
@@ -286,7 +342,7 @@ export default function Home() {
                       {loading ? (
                         <span className="flex items-center gap-2">
                           <ButtonSpinner size="sm" />
-                          {APP_COPY.home.submitButtonLoading}
+                          {loadingMessage || APP_COPY.home.submitButtonLoading}
                         </span>
                       ) : (
                         <>
@@ -366,7 +422,7 @@ export default function Home() {
                         disabled={submitting}
                         className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 px-6 rounded-xl hover:opacity-90 transition-all cursor-pointer"
                       >
-                        {submitting ? APP_COPY.draftResult.publishButtonLoading : APP_COPY.draftResult.publishButtonText}
+                        {submitting ? submittingMessage || APP_COPY.draftResult.publishButtonLoading : APP_COPY.draftResult.publishButtonText}
                       </button>
                     </div>
                   </div>
@@ -437,7 +493,7 @@ export default function Home() {
                         disabled={submitting}
                         className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-teal-500 to-amber-500 text-slate-950 px-6 rounded-xl hover:from-teal-600 hover:to-amber-600 transition-all cursor-pointer"
                       >
-                        {submitting ? APP_COPY.draftResult.publishButtonLoading : APP_COPY.draftResult.publishButtonText}
+                        {submitting ? submittingMessage || APP_COPY.draftResult.publishButtonLoading : APP_COPY.draftResult.publishButtonText}
                       </button>
                     </div>
                   </div>
@@ -558,6 +614,15 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        type={alertModal.type}
+        title={alertModal.title}
+        message={alertModal.message}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+      />
 
     </div>
   );

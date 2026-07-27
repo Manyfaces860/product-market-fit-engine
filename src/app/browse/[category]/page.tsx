@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Layers, ChevronRight, TrendingUp, Users } from 'lucide-react';
+import { ArrowLeft, Layers, ChevronRight, TrendingUp, Users, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { APP_COPY } from '@/lib/config/copy';
 import { PageScanner } from '@/components/Loader';
@@ -21,23 +21,29 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
   const { category } = use(params);
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     async function loadCategoryClusters() {
+      setLoading(true);
+      setError(null);
       try {
         const res = await fetch(`/api/clusters?category=${category}`);
-        if (res.ok) {
-          const data = await res.json();
-          setClusters(data);
+        if (!res.ok) {
+          throw new Error('Failed to retrieve categories data.');
         }
+        const data = await res.json();
+        setClusters(data || []);
       } catch (err) {
         console.error('Failed to load category clusters:', err);
+        setError('We are experiencing temporary database latency.');
       } finally {
         setLoading(false);
       }
     }
     loadCategoryClusters();
-  }, [category]);
+  }, [category, refreshTrigger]);
 
   const activeCategory = clusters[0] || null;
 
@@ -71,6 +77,30 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
       {/* Clusters List */}
       {loading ? (
         <PageScanner message="Querying customer complaints..." />
+      ) : error ? (
+        <div className="text-center py-20 px-4 select-none animate-fade-in max-w-xl mx-auto">
+          <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4 animate-pulse" />
+          <h2 className="text-xl font-bold font-sans text-slate-200">Error Loading Opportunities</h2>
+          <p className="text-slate-400 text-xs mt-2 leading-relaxed">{error}</p>
+          <div className="mt-8 flex gap-4 justify-center">
+            <Link
+              href="/browse"
+              className="font-mono text-xs font-bold uppercase bg-white/5 hover:bg-white/10 px-5 py-2.5 rounded-xl border border-white/5 text-slate-200 cursor-pointer"
+            >
+              Return to Browse
+            </Link>
+            <button
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                setRefreshTrigger(prev => prev + 1);
+              }}
+              className="font-mono text-xs font-bold uppercase bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 px-5 py-2.5 rounded-xl cursor-pointer"
+            >
+              Retry Load
+            </button>
+          </div>
+        </div>
       ) : clusters.length > 0 ? (
         <div className="space-y-6">
           {clusters.map((cluster, idx) => {
