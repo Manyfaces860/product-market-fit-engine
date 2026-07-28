@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { validateQuery } from '@/lib/validation';
 import { rateLimit, handleRateLimitResponse } from '@/lib/rate-limit';
 import { embeddingService, llmService } from '@/lib/ai';
-import { logMetric } from '@/lib/mongodb';
+import { logMetric, getDb } from '@/lib/mongodb';
 import { 
   getClusters, 
   getCategories, 
@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized', message: 'You must be signed in to submit a problem.' }, { status: 401 });
     }
 
-    // 2. Rate limit check (by userId)
+    // 2. Robust user-based rate limiting 🛡️
+    // By keying strictly on userId, the user's rate limits seamlessly follow them across 
+    // Cellular, Wi-Fi, and VPNs, while keeping coffee shop shared-IP lockouts completely solved!
     const limitCheck = await rateLimit(`submit_${userId}`);
     if (!limitCheck.success) {
       return handleRateLimitResponse(limitCheck.reset);
@@ -98,31 +100,63 @@ export async function POST(req: NextRequest) {
       // Join existing cluster
       const matchedCluster = topMatch;
       
-      // Update member count and append variant text if distinct and cap at 8 items
-      const updatedVariants = [...matchedCluster.sampleVariants];
-      if (!updatedVariants.includes(text) && updatedVariants.length < 8) {
-        updatedVariants.push(text);
-      }
-      
+      // Apply fast, atomic updates to MongoDB (Uncapped variants, 0 embedding cost! 🚀)
       const existingUserIds = matchedCluster.userIds || [];
-      const updatedUserIds = existingUserIds.includes(userId)
-        ? existingUserIds
-        : [...existingUserIds, userId];
+      const userAlreadyJoined = existingUserIds.includes(userId);
+      
+      const db = await getDb();
+      const mongoCluster = await db.collection('clusters').findOne({ id: matchedCluster.id });
+      let appendedVariant = false;
+
+      if (!mongoCluster) {
+        // 🚀 Self-Healing Migration: If the matched cluster exists only in Pinecone, create the MongoDB 
+        // document utilizing current state (which pulls legacy values from Pinecone)
+        const initialVariants = [...matchedCluster.sampleVariants];
+        if (!initialVariants.includes(text)) {
+          initialVariants.push(text);
+          appendedVariant = true;
+        }
+
+        await db.collection('clusters').insertOne({
+          id: matchedCluster.id,
+          memberCount: matchedCluster.memberCount + (userAlreadyJoined ? 0 : 1),
+          sampleVariants: initialVariants,
+          userIds: userAlreadyJoined ? existingUserIds : [...existingUserIds, userId],
+          createdAt: matchedCluster.createdAt || nowStr,
+          lastUpdatedAt: nowStr,
+        });
+      } else {
+        // Existing document update: apply fast, atomic changes
+        const updateOps: any = {
+          $set: { lastUpdatedAt: nowStr }
+        };
+        
+        if (!userAlreadyJoined) {
+          updateOps.$inc = { memberCount: 1 };
+          updateOps.$push = { userIds: userId };
+        }
+        
+        if (!matchedCluster.sampleVariants.includes(text)) {
+          if (!updateOps.$push) updateOps.$push = {};
+          updateOps.$push.sampleVariants = text;
+          appendedVariant = true;
+        }
+        
+        await db.collection('clusters').updateOne(
+          { id: matchedCluster.id },
+          updateOps
+        );
+      }
 
       const updatedCluster: ClusterRecord = {
         ...matchedCluster,
-        memberCount: matchedCluster.memberCount + (existingUserIds.includes(userId) ? 0 : 1),
-        sampleVariants: updatedVariants,
+        memberCount: matchedCluster.memberCount + (userAlreadyJoined ? 0 : 1),
+        sampleVariants: appendedVariant ? [...matchedCluster.sampleVariants, text] : matchedCluster.sampleVariants,
         lastUpdatedAt: nowStr,
-        userIds: updatedUserIds,
+        userIds: userAlreadyJoined ? existingUserIds : [...existingUserIds, userId],
       };
 
-      // Upsert cluster back into Pinecone (re-uses existing centroid embedding)
-      // Note: We search again or fetch to preserve its centroid embedding
-      const rawClusterVector = await embeddingService.getEmbedding(matchedCluster.canonicalText);
-      await upsertCluster(updatedCluster, rawClusterVector);
-
-      // Create raw problem record
+      // Create raw problem record in Pinecone
       const problemRecord: ProblemRecord = {
         id: problemId,
         rawText: text,
@@ -147,22 +181,41 @@ export async function POST(req: NextRequest) {
       const finalCategoryDescription = body.confirmedCategoryDescription || 'Miscellaneous user submissions';
       const finalCanonicalText = confirmedCanonicalText || text;
 
-      const newCluster: ClusterRecord = {
+      // 1. Generate embedding for the clean canonical text (better centroid representation)
+      const canonicalEmbedding = await embeddingService.getEmbedding(finalCanonicalText);
+      
+      // 2. Insert static taxonomy into Pinecone
+      const newClusterForPinecone: ClusterRecord = {
         id: clusterId,
         category: finalCategory,
         categoryLabel: finalCategoryLabel,
         categoryDescription: finalCategoryDescription,
         canonicalText: finalCanonicalText,
-        memberCount: 1,
-        sampleVariants: [text],
+        memberCount: 0, // Ignored by Pinecone now
+        sampleVariants: [], // Ignored by Pinecone now
         createdAt: nowStr,
         lastUpdatedAt: nowStr,
+      };
+      await upsertCluster(newClusterForPinecone, canonicalEmbedding);
+
+      // 3. Insert dynamic state into MongoDB 🚀
+      const db = await getDb();
+      await db.collection('clusters').insertOne({
+        id: clusterId,
+        memberCount: 1,
+        sampleVariants: [text],
+        userIds: [userId],
+        createdAt: nowStr,
+        lastUpdatedAt: nowStr,
+      });
+
+      // Assemble unified cluster representation for the client
+      const unifiedCluster: ClusterRecord = {
+        ...newClusterForPinecone,
+        memberCount: 1,
+        sampleVariants: [text],
         userIds: [userId],
       };
-
-      // Generate embedding for the clean canonical text (better centroid representation)
-      const canonicalEmbedding = await embeddingService.getEmbedding(finalCanonicalText);
-      await upsertCluster(newCluster, canonicalEmbedding);
 
       // Save raw problem
       const problemRecord: ProblemRecord = {
@@ -177,7 +230,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         joinedCluster: false,
-        cluster: newCluster,
+        cluster: unifiedCluster,
         problemId,
       });
     }

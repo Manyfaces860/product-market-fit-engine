@@ -57,6 +57,7 @@ export default function Home() {
   const [trending, setTrending] = useState<Cluster[]>([]);
   // const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [seedElapsed, setSeedElapsed] = useState<number | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submittingMessage, setSubmittingMessage] = useState('');
@@ -74,7 +75,10 @@ export default function Home() {
     const msg = error?.message || '';
     const name = error?.name || '';
     
-    // Catch rate limiting and convert to friendly guidance
+    // Catch rate limiting and convert to friendly guidance, preserving dynamic countdowns
+    if (msg.toLowerCase().includes('try again in')) {
+      return msg;
+    }
     if (msg.includes('429') || msg.includes('Too Many Requests') || msg.includes('rate limit')) {
       return 'You are making requests too quickly. Please wait a moment before trying again to keep usage fair!';
     }
@@ -229,8 +233,15 @@ export default function Home() {
 
   const handleSeedDatabase = async () => {
     setLoading(true);
+    setSeedElapsed(0);
+    const startTime = Date.now();
+    
+    const intervalId = setInterval(() => {
+      setSeedElapsed(Math.round((Date.now() - startTime) / 1000));
+    }, 1000);
+
     try {
-      const res = await fetchWithRetry('/api/seed');
+      const res = await fetchWithRetry('/api/seed', {}, 30000);
       if (res.ok) {
         const clustersRes = await fetchWithRetry('/api/clusters');
         if (clustersRes.ok) {
@@ -247,7 +258,9 @@ export default function Home() {
     } catch (err) {
       console.error(err);
     } finally {
+      clearInterval(intervalId);
       setLoading(false);
+      setSeedElapsed(null);
     }
   };
 
@@ -255,7 +268,7 @@ export default function Home() {
     <div className="flex-grow flex flex-col items-center justify-start py-12 px-4 sm:px-6 lg:px-8">
       
       {/* Seed Helper for empty DBs */}
-      {trending.length === 0 && (
+      {(
         <div className="mb-8 w-full max-w-xl p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-between gap-4">
           <div className="flex gap-2">
             <Database className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
@@ -269,7 +282,9 @@ export default function Home() {
             disabled={loading}
             className="shrink-0 font-mono text-[10px] uppercase font-bold tracking-wider bg-amber-500 text-slate-950 px-3 py-1.5 rounded hover:bg-amber-600 cursor-pointer disabled:opacity-50"
           >
-            {loading ? APP_COPY.home.seedButtonLoading : APP_COPY.home.seedButtonText}
+            {loading 
+              ? `${APP_COPY.home.seedButtonLoading} (${seedElapsed !== null ? `${seedElapsed}s` : 'loading...'})` 
+              : APP_COPY.home.seedButtonText}
           </button>
         </div>
       )}

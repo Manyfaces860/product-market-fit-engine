@@ -32,6 +32,15 @@ if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
 
 // Shared mock database instance so that fallback state is preserved across request cycles
 let activeMockDb: any = null;
+let isMongoLive = false;
+
+export function isMongoDbLive(): boolean {
+  // If we are in test mode or URI is completely missing, it's always emulated
+  if (process.env.NODE_ENV === 'test' || !MONGODB_URI) {
+    return false;
+  }
+  return isMongoLive;
+}
 
 /**
  * Retrieves the connected MongoDB Database instance.
@@ -40,6 +49,7 @@ let activeMockDb: any = null;
 export async function getDb() {
   if (process.env.NODE_ENV === 'test' || !MONGODB_URI) {
     if (!activeMockDb) activeMockDb = createMockMongoDb();
+    isMongoLive = false;
     return activeMockDb;
   }
   
@@ -51,8 +61,10 @@ export async function getDb() {
         setTimeout(() => reject(new Error('Connection timed out after 4 seconds.')), 4000)
       )
     ]);
+    isMongoLive = true; // 🚀 Live connected successfully!
     return connectedClient.db(MONGODB_DB);
   } catch (error: any) {
+    isMongoLive = false; // 🚀 Fallback occurred
     console.warn(`[MongoDB] Live connection failed (Error: ${error?.message || error}). Falling back to in-memory emulator.`);
     console.log("👉 Tip: If using MongoDB Atlas, make sure your current local IP address is whitelisted in the Atlas Network Security console!");
     

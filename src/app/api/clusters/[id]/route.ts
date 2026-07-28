@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getClusterById, getAdjacentClusters, upsertCluster, getPineconeIndex } from '@/lib/pinecone';
-import { embeddingService } from '@/lib/ai';
+import { getClusterById, getAdjacentClusters } from '@/lib/pinecone';
 import { auth } from '@clerk/nextjs/server';
-import { logMetric } from '@/lib/mongodb';
+import { logMetric, getDb } from '@/lib/mongodb';
+import { createResponse } from '@/lib/response';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Fetch related / adjacent clusters in vector space
     const adjacent = await getAdjacentClusters(id, 4);
 
-    return NextResponse.json({
+    return createResponse({
       cluster,
       adjacent,
     });
@@ -60,27 +60,64 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }, { status: 409 });
     }
 
-    const updatedVariants = [...cluster.sampleVariants];
-    if (phrasing && phrasing.trim() !== '') {
-      const cleanPhrasing = phrasing.trim();
-      if (!updatedVariants.includes(cleanPhrasing) && updatedVariants.length < 8) {
-        updatedVariants.push(cleanPhrasing);
+    // Connect to MongoDB to apply atomic transactional updates to dynamic cluster state
+    const db = await getDb();
+    
+    // Check if the dynamic document already exists in MongoDB
+    const mongoCluster = await db.collection('clusters').findOne({ id });
+    let appendedPhrasing = false;
+    const cleanPhrasing = (phrasing && phrasing.trim() !== '') ? phrasing.trim() : null;
+
+    if (!mongoCluster) {
+      // 🚀 Self-Healing Migration: If the cluster only exists in Pinecone, create the MongoDB record 
+      // utilizing the legacy metadata values, and append the new co-signing user!
+      const initialVariants = [...cluster.sampleVariants];
+      if (cleanPhrasing && !initialVariants.includes(cleanPhrasing)) {
+        initialVariants.push(cleanPhrasing);
+        appendedPhrasing = true;
       }
+
+      await db.collection('clusters').insertOne({
+        id,
+        memberCount: cluster.memberCount + 1,
+        sampleVariants: initialVariants,
+        userIds: [userId],
+        createdAt: cluster.createdAt || new Date().toISOString(),
+        lastUpdatedAt: new Date().toISOString(),
+      });
+    } else {
+      // Construct the atomic update object
+      const updateOps: any = {
+        $inc: { memberCount: 1 },
+        $push: { userIds: userId },
+        $set: { lastUpdatedAt: new Date().toISOString() }
+      };
+
+      // Uncapped variants! We simply push the new variant into MongoDB if it's unique.
+      if (cleanPhrasing) {
+        if (!cluster.sampleVariants.includes(cleanPhrasing)) {
+          if (!updateOps.$push) updateOps.$push = {};
+          updateOps.$push.sampleVariants = cleanPhrasing;
+          appendedPhrasing = true;
+        }
+      }
+
+      // Apply ultra-fast MongoDB update (0 OpenAI embedding cost! 🚀)
+      await db.collection('clusters').updateOne(
+        { id },
+        updateOps
+      );
     }
 
     const updatedCluster = {
       ...cluster,
       memberCount: cluster.memberCount + 1,
-      sampleVariants: updatedVariants,
-      lastUpdatedAt: new Date().toISOString(),
       userIds: [...userIds, userId],
+      sampleVariants: appendedPhrasing ? [...cluster.sampleVariants, cleanPhrasing!] : cluster.sampleVariants,
+      lastUpdatedAt: new Date().toISOString(),
     };
 
-    // Re-get the centroid vector by re-embedding canonical text
-    const centroidEmbedding = await embeddingService.getEmbedding(cluster.canonicalText);
-    await upsertCluster(updatedCluster, centroidEmbedding);
-
-    return NextResponse.json({
+    return createResponse({
       success: true,
       cluster: updatedCluster,
     });

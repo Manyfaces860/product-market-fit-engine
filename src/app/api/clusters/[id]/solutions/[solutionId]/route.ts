@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getClusterById, upsertCluster } from '@/lib/pinecone';
-import { embeddingService } from '@/lib/ai';
+import { getClusterById } from '@/lib/pinecone';
+import { getDb } from '@/lib/mongodb';
 
 /**
  * PATCH /api/clusters/[id]/solutions/[solutionId]
@@ -36,7 +36,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Validation Error', message: 'Description of how it solves the problem is required.' }, { status: 400 });
     }
 
-    // 3. Fetch cluster
+    // 3. Fetch cluster (This already joins solutions from MongoDB!)
     const cluster = await getClusterById(id);
     if (!cluster) {
       return NextResponse.json(
@@ -45,18 +45,16 @@ export async function PATCH(
       );
     }
 
-    // 4. Find the target solution
-    const solutions = cluster.solutions || [];
-    const solutionIndex = solutions.findIndex(s => s.id === solutionId);
+    // 4. Connect to MongoDB to fetch and modify the solution
+    const db = await getDb();
+    const solution = await db.collection('solutions').findOne({ id: solutionId });
 
-    if (solutionIndex === -1) {
+    if (!solution) {
       return NextResponse.json(
         { error: 'Not Found', message: `Solution with ID ${solutionId} not found.` },
         { status: 404 }
       );
     }
-
-    const solution = solutions[solutionIndex];
 
     // 5. Authorization Guard: Check if user is the builder
     if (solution.builderId !== userId) {
@@ -67,9 +65,10 @@ export async function PATCH(
     }
 
     // 6. Check for duplicate URL with other products in the same cluster
+    const solutions = cluster.solutions || [];
     const normalizedUrl = url.trim().toLowerCase().replace(/\/$/, '');
     const isDuplicate = solutions.some(
-      (s, idx) => idx !== solutionIndex && s.url.trim().toLowerCase().replace(/\/$/, '') === normalizedUrl
+      s => s.id !== solutionId && s.url.trim().toLowerCase().replace(/\/$/, '') === normalizedUrl
     );
     if (isDuplicate) {
       return NextResponse.json(
@@ -78,9 +77,8 @@ export async function PATCH(
       );
     }
 
-    // 7. Apply updates while preserving system fields (ID, builderId, upvotes, votesUserIds, createdAt)
-    const updatedSolution = {
-      ...solution,
+    // 7. Apply updates to MongoDB while preserving system fields (id, clusterId, builderId, upvotes, votesUserIds, createdAt)
+    const updatedFields = {
       name: name.trim(),
       url: url.trim(),
       description: description.trim(),
@@ -89,22 +87,25 @@ export async function PATCH(
       lastUpdatedAt: new Date().toISOString(),
     };
 
-    const updatedSolutions = [...solutions];
-    updatedSolutions[solutionIndex] = updatedSolution;
+    await db.collection('solutions').updateOne(
+      { id: solutionId },
+      { $set: updatedFields }
+    );
 
-    const updatedCluster = {
-      ...cluster,
-      solutions: updatedSolutions,
-      lastUpdatedAt: new Date().toISOString(),
+    // 8. Return response with the updated state
+    const updatedSolution = {
+      ...solution,
+      ...updatedFields,
     };
 
-    // Re-get the centroid vector by re-embedding canonical text
-    const centroidEmbedding = await embeddingService.getEmbedding(cluster.canonicalText);
-    await upsertCluster(updatedCluster, centroidEmbedding);
+    const updatedSolutions = solutions.map(s => s.id === solutionId ? updatedSolution : s);
 
     return NextResponse.json({
       success: true,
-      cluster: updatedCluster,
+      cluster: {
+        ...cluster,
+        solutions: updatedSolutions,
+      },
       solution: updatedSolution,
     });
   } catch (error: any) {
@@ -135,18 +136,9 @@ export async function DELETE(
       );
     }
 
-    // 2. Fetch cluster
-    const cluster = await getClusterById(id);
-    if (!cluster) {
-      return NextResponse.json(
-        { error: 'Not Found', message: `Problem group with ID ${id} not found.` },
-        { status: 404 }
-      );
-    }
-
-    // 3. Find target solution to verify ownership
-    const solutions = cluster.solutions || [];
-    const solution = solutions.find(s => s.id === solutionId);
+    // 2. Connect to MongoDB to fetch and delete the solution
+    const db = await getDb();
+    const solution = await db.collection('solutions').findOne({ id: solutionId });
 
     if (!solution) {
       return NextResponse.json(
@@ -155,7 +147,7 @@ export async function DELETE(
       );
     }
 
-    // 4. Authorization Guard: Check if user is the builder of the solution
+    // 3. Authorization Guard: Check if user is the builder of the solution
     if (solution.builderId !== userId) {
       return NextResponse.json(
         { error: 'Forbidden', message: 'You are not authorized to delete this solution.' },
@@ -163,22 +155,30 @@ export async function DELETE(
       );
     }
 
-    // 5. Remove solution from list
-    const updatedSolutions = solutions.filter(s => s.id !== solutionId);
+    // 4. Fetch cluster (This already joins solutions from MongoDB!)
+    const cluster = await getClusterById(id);
+    if (!cluster) {
+      return NextResponse.json(
+        { error: 'Not Found', message: `Problem group with ID ${id} not found.` },
+        { status: 404 }
+      );
+    }
 
-    const updatedCluster = {
-      ...cluster,
-      solutions: updatedSolutions,
-      lastUpdatedAt: new Date().toISOString(),
-    };
+    // 5. Delete solution from MongoDB 🚀
+    await db.collection('solutions').deleteOne({ id: solutionId });
 
-    // Re-get the centroid vector by re-embedding canonical text
-    const centroidEmbedding = await embeddingService.getEmbedding(cluster.canonicalText);
-    await upsertCluster(updatedCluster, centroidEmbedding);
+    // 6. Relational cascade: Delete associated reviews in MongoDB as well!
+    await db.collection('reviews').deleteMany({ solutionId });
+
+    // 7. Filter deleted solution out of local array to return fresh response
+    const updatedSolutions = (cluster.solutions || []).filter(s => s.id !== solutionId);
 
     return NextResponse.json({
       success: true,
-      cluster: updatedCluster,
+      cluster: {
+        ...cluster,
+        solutions: updatedSolutions,
+      },
     });
   } catch (error: any) {
     console.error(`Error deleting solution ${solutionId} from cluster ${id}:`, error);

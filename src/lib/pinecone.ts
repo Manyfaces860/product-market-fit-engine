@@ -69,6 +69,13 @@ const isPineconeActive =
   PINECONE_API_KEY !== 'your-pinecone-api-key' && 
   PINECONE_API_KEY.trim() !== '';
 
+let wasPineconeOutage = false;
+
+export function isPineconeLive(): boolean {
+  if (!isPineconeActive) return false;
+  return !wasPineconeOutage;
+}
+
 // Shared instance or function to get index
 let pineconeClient: Pinecone | null = null;
 
@@ -113,11 +120,77 @@ function getCosineSimilarity(a: number[], b: number[]): number {
 }
 
 /**
+ * Helper to dynamically join dynamic cluster state and solutions from MongoDB to a list of clusters.
+ */
+async function joinMongoDataToClusters(clusters: ClusterRecord[]): Promise<ClusterRecord[]> {
+  if (clusters.length === 0) return clusters;
+  try {
+    const { getDb } = await import('./mongodb');
+    const db = await getDb();
+    const clusterIds = clusters.map(c => c.id);
+    
+    // Fetch solutions and dynamic cluster data in parallel
+    const [solutions, mongoClusters] = await Promise.all([
+      db.collection('solutions').find({ clusterId: { $in: clusterIds } }).toArray(),
+      db.collection('clusters').find({ id: { $in: clusterIds } }).toArray()
+    ]);
+
+    // Group solutions by clusterId
+    const solutionsByCluster = solutions.reduce((acc: Record<string, Solution[]>, sol: any) => {
+      const cId = sol.clusterId;
+      if (cId) {
+        if (!acc[cId]) {
+          acc[cId] = [];
+        }
+        acc[cId].push({
+          id: sol.id,
+          name: sol.name,
+          url: sol.url,
+          description: sol.description,
+          builderId: sol.builderId,
+          builderName: sol.builderName,
+          upvotes: Number(sol.upvotes || 0),
+          votesUserIds: Array.isArray(sol.votesUserIds) ? sol.votesUserIds : [],
+          createdAt: sol.createdAt || new Date().toISOString(),
+          iconUrl: sol.iconUrl || '/placeholder-solution-icon.png'
+        });
+      }
+      return acc;
+    }, {} as Record<string, Solution[]>);
+
+    // Map dynamic cluster data into a dictionary for O(1) lookup
+    const mongoClustersById = mongoClusters.reduce((acc: Record<string, any>, c: any) => {
+      acc[c.id] = c;
+      return acc;
+    }, {} as Record<string, any>);
+
+    for (const cluster of clusters) {
+      cluster.solutions = solutionsByCluster[cluster.id] || [];
+      
+      const dynData = mongoClustersById[cluster.id];
+      if (dynData) {
+        cluster.memberCount = typeof dynData.memberCount === 'number' ? dynData.memberCount : cluster.memberCount;
+        cluster.sampleVariants = Array.isArray(dynData.sampleVariants) ? dynData.sampleVariants : cluster.sampleVariants;
+        cluster.userIds = Array.isArray(dynData.userIds) ? dynData.userIds : cluster.userIds;
+        cluster.createdAt = dynData.createdAt || cluster.createdAt;
+        cluster.lastUpdatedAt = dynData.lastUpdatedAt || cluster.lastUpdatedAt;
+      }
+    }
+  } catch (error) {
+    console.warn('[pinecone.ts] Failed to join MongoDB data to clusters:', error);
+    for (const cluster of clusters) {
+      if (!cluster.solutions) cluster.solutions = [];
+    }
+  }
+  return clusters;
+}
+
+/**
  * Fetch all clusters from Pinecone, optionally filtered by category.
  */
 export async function getClusters(category?: string): Promise<ClusterRecord[]> {
   if (!isPineconeActive) {
-    return getLocalClusters(category);
+    return joinMongoDataToClusters(getLocalClusters(category));
   }
 
   try {
@@ -160,20 +233,19 @@ export async function getClusters(category?: string): Promise<ClusterRecord[]> {
               : typeof meta.userIds === 'string'
               ? JSON.parse(meta.userIds)
               : [],
-            solutions: typeof meta.solutions === 'string'
-              ? JSON.parse(meta.solutions)
-              : Array.isArray(meta.solutions)
-              ? meta.solutions.map((s: any) => typeof s === 'string' ? JSON.parse(s) : s)
-              : [],
+            solutions: [], // Dynamically fetched from MongoDB instead
           });
         }
       }
     }
     
-    return clusters.sort((a, b) => b.memberCount - a.memberCount);
+    const sorted = clusters.sort((a, b) => b.memberCount - a.memberCount);
+    wasPineconeOutage = false; // 🚀 Success!
+    return joinMongoDataToClusters(sorted);
   } catch (error) {
-    console.warn('[Pinecone] Connection timeout/outage. Falling back to local in-memory records.');
-    return getLocalClusters(category);
+    wasPineconeOutage = true; // 🚀 Outage!
+    console.warn('[Pinecone] Connection timeout/outage. Falling back to local in-memory records.', error);
+    return joinMongoDataToClusters(getLocalClusters(category));
   }
 }
 
@@ -182,7 +254,8 @@ export async function getClusters(category?: string): Promise<ClusterRecord[]> {
  */
 export async function getClusterById(id: string): Promise<ClusterRecord | null> {
   if (!isPineconeActive) {
-    return getLocalClusterById(id);
+    const local = getLocalClusterById(id);
+    return local ? (await joinMongoDataToClusters([local]))[0] : null;
   }
 
   try {
@@ -190,10 +263,13 @@ export async function getClusterById(id: string): Promise<ClusterRecord | null> 
     const fetchResponse = await index.fetch({ ids: [id] });
     
     const record = fetchResponse.records?.[id];
-    if (!record || !record.metadata) return getLocalClusterById(id);
+    if (!record || !record.metadata) {
+      const local = getLocalClusterById(id);
+      return local ? (await joinMongoDataToClusters([local]))[0] : null;
+    }
     
     const meta = record.metadata as any;
-    return {
+    const cluster: ClusterRecord = {
       id: record.id,
       category: meta.category,
       categoryLabel: meta.categoryLabel || 'Uncategorized',
@@ -212,15 +288,16 @@ export async function getClusterById(id: string): Promise<ClusterRecord | null> 
         : typeof meta.userIds === 'string'
         ? JSON.parse(meta.userIds)
         : [],
-      solutions: typeof meta.solutions === 'string'
-        ? JSON.parse(meta.solutions)
-        : Array.isArray(meta.solutions)
-        ? meta.solutions.map((s: any) => typeof s === 'string' ? JSON.parse(s) : s)
-        : [],
+      solutions: [], // Dynamically fetched from MongoDB instead
     };
+
+    wasPineconeOutage = false; // 🚀 Success!
+    return (await joinMongoDataToClusters([cluster]))[0];
   } catch (error) {
+    wasPineconeOutage = true; // 🚀 Outage!
     console.warn(`[Pinecone] Failed to fetch cluster ${id}. Falling back to in-memory.`);
-    return getLocalClusterById(id);
+    const local = getLocalClusterById(id);
+    return local ? (await joinMongoDataToClusters([local]))[0] : null;
   }
 }
 
@@ -229,7 +306,7 @@ export async function getClusterById(id: string): Promise<ClusterRecord | null> 
  */
 export async function searchClusters(queryEmbedding: number[], limit = 5): Promise<(ClusterRecord & { score?: number })[]> {
   if (!isPineconeActive) {
-    return searchLocalClusters(queryEmbedding, limit);
+    return joinMongoDataToClusters(searchLocalClusters(queryEmbedding, limit));
   }
 
   try {
@@ -265,20 +342,18 @@ export async function searchClusters(queryEmbedding: number[], limit = 5): Promi
               : typeof meta.userIds === 'string'
               ? JSON.parse(meta.userIds)
               : [],
-            solutions: typeof meta.solutions === 'string'
-              ? JSON.parse(meta.solutions)
-              : Array.isArray(meta.solutions)
-              ? meta.solutions.map((s: any) => typeof s === 'string' ? JSON.parse(s) : s)
-              : [],
+            solutions: [], // Dynamically fetched from MongoDB instead
             score: match.score,
           });
         }
       }
     }
-    return results;
+    wasPineconeOutage = false; // 🚀 Success!
+    return joinMongoDataToClusters(results);
   } catch (error) {
+    wasPineconeOutage = true; // 🚀 Outage!
     console.warn('[Pinecone] Similarity search connection failed. Running fallback local vector scanner.');
-    return searchLocalClusters(queryEmbedding, limit);
+    return joinMongoDataToClusters(searchLocalClusters(queryEmbedding, limit));
   }
 }
 
@@ -287,14 +362,14 @@ export async function searchClusters(queryEmbedding: number[], limit = 5): Promi
  */
 export async function getAdjacentClusters(clusterId: string, limit = 4): Promise<ClusterRecord[]> {
   if (!isPineconeActive) {
-    return getLocalAdjacentClusters(clusterId, limit);
+    return joinMongoDataToClusters(getLocalAdjacentClusters(clusterId, limit));
   }
 
   try {
     const index = getPineconeIndex();
     const fetchResponse = await index.fetch({ ids: [clusterId] });
     const record = fetchResponse.records?.[clusterId];
-    if (!record || !record.values) return getLocalAdjacentClusters(clusterId, limit);
+    if (!record || !record.values) return joinMongoDataToClusters(getLocalAdjacentClusters(clusterId, limit));
     
     const queryResponse = await index.query({
       vector: record.values,
@@ -330,19 +405,18 @@ export async function getAdjacentClusters(clusterId: string, limit = 4): Promise
               : typeof meta.userIds === 'string'
               ? JSON.parse(meta.userIds)
               : [],
-            solutions: typeof meta.solutions === 'string'
-              ? JSON.parse(meta.solutions)
-              : Array.isArray(meta.solutions)
-              ? meta.solutions.map((s: any) => typeof s === 'string' ? JSON.parse(s) : s)
-              : [],
+            solutions: [], // Dynamically fetched from MongoDB instead
           });
         }
       }
     }
-    return results.slice(0, limit);
+    const sliced = results.slice(0, limit);
+    wasPineconeOutage = false; // 🚀 Success!
+    return joinMongoDataToClusters(sliced);
   } catch (error) {
+    wasPineconeOutage = true; // 🚀 Outage!
     console.warn(`[Pinecone] Failed to compute adjacencies for ${clusterId}. Fallback active.`);
-    return getLocalAdjacentClusters(clusterId, limit);
+    return joinMongoDataToClusters(getLocalAdjacentClusters(clusterId, limit));
   }
 }
 
@@ -367,16 +441,14 @@ export async function upsertCluster(cluster: ClusterRecord, embedding: number[])
           categoryLabel: cluster.categoryLabel,
           categoryDescription: cluster.categoryDescription,
           canonicalText: cluster.canonicalText,
-          memberCount: cluster.memberCount,
-          sampleVariants: cluster.sampleVariants,
-          createdAt: cluster.createdAt,
-          lastUpdatedAt: cluster.lastUpdatedAt,
-          userIds: cluster.userIds || [],
-          solutions: JSON.stringify(cluster.solutions || []),
+          // Dynamic fields (memberCount, sampleVariants, userIds, timestamps) 
+          // are now stored EXCLUSIVELY in MongoDB! 🚀
         }
       }]
     });
+    wasPineconeOutage = false; // 🚀 Success!
   } catch (error) {
+    wasPineconeOutage = true; // 🚀 Outage!
     console.warn('[Pinecone] Outage during upsert cluster. Local records updated instead.');
   }
 }
@@ -565,4 +637,29 @@ function getLocalAdjacentClusters(clusterId: string, limit = 4): ClusterRecord[]
 
   const sorted = otherClusters.sort((a, b) => b.score - a.score);
   return sorted.slice(0, limit);
+}
+
+/**
+ * Completely flushes every record in the Pinecone Index (and clears the local memory replica).
+ * Designed for fresh start seeding and local test environments.
+ */
+export async function wipePineconeIndex(): Promise<void> {
+  // 1. Clear local memory database replica
+  localDb.clusters.clear();
+  localDb.problems.clear();
+
+  if (!isPineconeActive) {
+    console.log('[Pinecone] Offline fallback: cleared local memory database replica successfully.');
+    return;
+  }
+
+  // 2. Clear remote Pinecone index
+  try {
+    const index = getPineconeIndex();
+    await index.deleteAll();
+    console.log('[Pinecone] Remote index cleared successfully.');
+  } catch (error: any) {
+    console.error('[Pinecone] Failed to clear remote index:', error?.message || error);
+    throw new Error(`Failed to flush Pinecone index: ${error?.message || error}`);
+  }
 }
