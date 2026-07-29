@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageScanner, ButtonSpinner } from '@/components/Loader';
+import AlertModal from '@/components/AlertModal';
 
 interface AdminStats {
   totalClustersCount: number;
@@ -32,6 +33,11 @@ interface AdminStats {
   avgProblemTokenCount: number;
   avgCostPerSubmission: number;
   costsByType: {
+    submission: number;
+    search: number;
+    'me-too': number;
+  };
+  countsByType: {
     submission: number;
     search: number;
     'me-too': number;
@@ -77,6 +83,14 @@ export default function AdminDashboardPage() {
   const [loadingProblems, setLoadingProblems] = useState(false);
   const [reassigningId, setReassigningId] = useState<string | null>(null);
   const [reassignTargets, setReassignTargets] = useState<Record<string, string>>({}); // problemId -> targetClusterId
+
+  // Custom Alert Modal states
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    type: 'success' as 'success' | 'error' | 'info',
+    title: '',
+    message: ''
+  });
 
   // Load all clusters on mount for the selection lists
   useEffect(() => {
@@ -138,11 +152,21 @@ export default function AdminDashboardPage() {
         const problemsList = data.problems || [];
         setProblemsCache(prev => ({ ...prev, [selectedClusterId]: problemsList }));
         setRawProblems(problemsList);
-        alert('Curation list successfully synchronized with live database records!');
+        setAlertModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Sync Completed!',
+          message: 'The curation list has been successfully synchronized with live database records.'
+        });
       }
     } catch (err) {
       console.error('Failed to refresh problems:', err);
-      alert('Failed to refresh data.');
+      setAlertModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Sync Failed',
+        message: 'Could not synchronize complaints with active database records.'
+      });
     } finally {
       setLoadingProblems(false);
     }
@@ -151,7 +175,12 @@ export default function AdminDashboardPage() {
   const handleReassignSubmit = async (problemId: string) => {
     const targetClusterId = reassignTargets[problemId];
     if (!targetClusterId) {
-      alert('Please select a target group first!');
+      setAlertModal({
+        isOpen: true,
+        type: 'info',
+        title: 'Target Group Missing',
+        message: 'Please select a target group from the dropdown list before executing the reassignment.'
+      });
       return;
     }
 
@@ -199,9 +228,20 @@ export default function AdminDashboardPage() {
         });
       }
 
-      alert('Problem successfully reassigned and parent statistics updated!');
+      setAlertModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Reassignment Completed!',
+        message: 'The individual complaint has been successfully reassigned. Parent counts and variants are synchronized.'
+      });
     } catch (err: any) {
-      alert(err.message);
+      console.error(err);
+      setAlertModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Reassignment Failed',
+        message: err.message || 'Could not complete reassignment.'
+      });
     } finally {
       setReassigningId(null);
     }
@@ -276,10 +316,10 @@ export default function AdminDashboardPage() {
   }
 
   // Calculate costs breakout ratios for the charts
-  const totalCost = stats.totalCostEstimated || 0.0001;
-  const subRatio = ((stats.costsByType.submission || 0) / totalCost) * 100;
-  const searchRatio = ((stats.costsByType.search || 0) / totalCost) * 100;
-  const metooRatio = ((stats.costsByType['me-too'] || 0) / totalCost) * 100;
+  const totalCount = stats.totalTransactions || 1;
+  const subRatio = ((stats.countsByType.submission || 0) / totalCount) * 100;
+  const searchRatio = ((stats.countsByType.search || 0) / totalCount) * 100;
+  const metooRatio = ((stats.countsByType['me-too'] || 0) / totalCount) * 100;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-10">
@@ -354,22 +394,22 @@ export default function AdminDashboardPage() {
           <div className="p-6 bg-slate-900/30 border border-white/5 rounded-2xl shadow-xl space-y-6">
             <div>
               <h3 className="text-lg font-display font-bold text-slate-200 italic flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-red-500" /> AI API Budget Allocations
+                <BarChart3 className="h-5 w-5 text-red-500" /> AI API Transaction Frequency
               </h3>
               <p className="text-slate-400 text-xs font-mono uppercase tracking-wider">
-                DISTRIBUTION OF SPEND BY COMPLETED PIPELINE ACTIONS
+                DISTRIBUTION OF PIPELINE ACTIONS BY TRANSACTION VOLUME
               </p>
             </div>
 
-            {/* Horizontal Stacked Chart bar */}
+            {/* Horizontal Stacked Chart bar (Based on count) */}
             <div className="space-y-4">
               <div className="h-4 w-full bg-slate-950 rounded-full overflow-hidden flex">
-                <div style={{ width: `${subRatio}%` }} className="h-full bg-gradient-to-r from-amber-500 to-amber-600" title="Draft submissions" />
-                <div style={{ width: `${searchRatio}%` }} className="h-full bg-gradient-to-r from-teal-400 to-teal-500" title="Semantic searches" />
-                <div style={{ width: `${metooRatio}%` }} className="h-full bg-gradient-to-r from-red-400 to-red-500" title="Me Too co-signs" />
+                <div style={{ width: `${subRatio}%` }} className="h-full bg-gradient-to-r from-amber-500 to-amber-600" title={`Submissions: ${stats.countsByType.submission} requests`} />
+                <div style={{ width: `${searchRatio}%` }} className="h-full bg-gradient-to-r from-teal-400 to-teal-500" title={`Searches: ${stats.countsByType.search} requests`} />
+                <div style={{ width: `${metooRatio}%` }} className="h-full bg-gradient-to-r from-red-400 to-red-500" title={`Co-signs: ${stats.countsByType['me-too']} requests`} />
               </div>
 
-              {/* Legends with costs */}
+              {/* Legends with costs and counts */}
               <div className="grid grid-cols-3 gap-2 text-xs font-mono select-none">
                 <div className="space-y-1 text-left">
                   <div className="flex items-center gap-1.5">
@@ -377,7 +417,7 @@ export default function AdminDashboardPage() {
                     <span className="text-slate-400 uppercase text-[9px] font-bold">Submissions</span>
                   </div>
                   <p className="text-slate-200 font-semibold text-xs">${stats.costsByType.submission.toFixed(4)}</p>
-                  <p className="text-[9px] text-slate-500">{subRatio.toFixed(1)}% of budget</p>
+                  <p className="text-[9px] text-slate-500">{stats.countsByType.submission} reqs ({subRatio.toFixed(0)}%)</p>
                 </div>
 
                 <div className="space-y-1 text-center border-x border-white/5 px-2">
@@ -385,8 +425,8 @@ export default function AdminDashboardPage() {
                     <span className="w-2.5 h-2.5 bg-teal-400 rounded-full" />
                     <span className="text-slate-400 uppercase text-[9px] font-bold">Searches</span>
                   </div>
-                  <p className="text-slate-200 font-semibold text-xs">${stats.costsByType.search.toFixed(4)}</p>
-                  <p className="text-[9px] text-slate-500">{searchRatio.toFixed(1)}% of budget</p>
+                  <p className="text-slate-200 font-semibold text-xs">${stats.costsByType.search.toFixed(6)}</p>
+                  <p className="text-[9px] text-slate-500">{stats.countsByType.search} reqs ({searchRatio.toFixed(0)}%)</p>
                 </div>
 
                 <div className="space-y-1 text-right">
@@ -394,8 +434,8 @@ export default function AdminDashboardPage() {
                     <span className="w-2.5 h-2.5 bg-red-400 rounded-full" />
                     <span className="text-slate-400 uppercase text-[9px] font-bold">Co-signs</span>
                   </div>
-                  <p className="text-slate-200 font-semibold text-xs">${stats.costsByType['me-too'].toFixed(4)}</p>
-                  <p className="text-[9px] text-slate-500">{metooRatio.toFixed(1)}% of budget</p>
+                  <p className="text-slate-200 font-semibold text-xs">${stats.costsByType['me-too'].toFixed(6)}</p>
+                  <p className="text-[9px] text-slate-500">{stats.countsByType['me-too']} reqs ({metooRatio.toFixed(0)}%)</p>
                 </div>
               </div>
             </div>
@@ -609,6 +649,15 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Custom Operations Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        type={alertModal.type}
+        title={alertModal.title}
+        message={alertModal.message}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+      />
 
     </div>
   );

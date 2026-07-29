@@ -59,9 +59,16 @@ export async function GET(req: NextRequest) {
       'me-too': 0,
     };
 
+    const countsByType: Record<string, number> = {
+      submission: 0,
+      search: 0,
+      'me-too': 0,
+    };
+
     for (const m of metricsList) {
       totalCostEstimated += Number(m.estimatedCost || 0);
       costsByType[m.type] = (costsByType[m.type] || 0) + Number(m.estimatedCost || 0);
+      countsByType[m.type] = (countsByType[m.type] || 0) + 1;
 
       if (m.type === 'submission') {
         submissionCharSum += Number(m.charCount || 0);
@@ -90,6 +97,11 @@ export async function GET(req: NextRequest) {
           submission: Number((costsByType.submission || 0).toFixed(4)),
           search: Number((costsByType.search || 0).toFixed(4)),
           'me-too': Number((costsByType['me-too'] || 0).toFixed(4)),
+        },
+        countsByType: {
+          submission: countsByType.submission || 0,
+          search: countsByType.search || 0,
+          'me-too': countsByType['me-too'] || 0,
         },
         categoryPopularity,
       },
