@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getClusterById } from '@/lib/pinecone';
-import { getDb } from '@/lib/mongodb';
+import { getClusterById, getDb } from '@/lib/mongodb';
 
 /**
  * PATCH /api/clusters/[id]/solutions/[solutionId]
@@ -29,8 +28,17 @@ export async function PATCH(
     if (!name || name.trim() === '') {
       return NextResponse.json({ error: 'Validation Error', message: 'Product name is required.' }, { status: 400 });
     }
-    if (!url || url.trim() === '') {
+    const trimmedUrl = url ? url.trim() : '';
+    if (!url || trimmedUrl === '') {
       return NextResponse.json({ error: 'Validation Error', message: 'Product URL is required.' }, { status: 400 });
+    }
+    // Security protocol validation to block malicious XSS links (javascript:alert etc.) 🛡️
+    const isSafeUrl = trimmedUrl.toLowerCase().startsWith('http://') || trimmedUrl.toLowerCase().startsWith('https://');
+    if (!isSafeUrl) {
+      return NextResponse.json(
+        { error: 'Validation Error', message: 'Product URL must use a safe web protocol (http:// or https://).' },
+        { status: 400 }
+      );
     }
     if (!description || description.trim() === '') {
       return NextResponse.json({ error: 'Validation Error', message: 'Description of how it solves the problem is required.' }, { status: 400 });
@@ -68,7 +76,7 @@ export async function PATCH(
     const solutions = cluster.solutions || [];
     const normalizedUrl = url.trim().toLowerCase().replace(/\/$/, '');
     const isDuplicate = solutions.some(
-      s => s.id !== solutionId && s.url.trim().toLowerCase().replace(/\/$/, '') === normalizedUrl
+      (s: any) => s.id !== solutionId && s.url.trim().toLowerCase().replace(/\/$/, '') === normalizedUrl
     );
     if (isDuplicate) {
       return NextResponse.json(
@@ -98,7 +106,7 @@ export async function PATCH(
       ...updatedFields,
     };
 
-    const updatedSolutions = solutions.map(s => s.id === solutionId ? updatedSolution : s);
+    const updatedSolutions = solutions.map((s: any) => s.id === solutionId ? updatedSolution : s);
 
     return NextResponse.json({
       success: true,
@@ -171,7 +179,7 @@ export async function DELETE(
     await db.collection('reviews').deleteMany({ solutionId });
 
     // 7. Filter deleted solution out of local array to return fresh response
-    const updatedSolutions = (cluster.solutions || []).filter(s => s.id !== solutionId);
+    const updatedSolutions = (cluster.solutions || []).filter((s: any) => s.id !== solutionId);
 
     return NextResponse.json({
       success: true,

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { embeddingService } from '@/lib/ai';
-import { searchClusters } from '@/lib/pinecone';
+import { searchClusters, logMetric } from '@/lib/mongodb';
 import { validateQuery } from '@/lib/validation';
 import { rateLimit, handleRateLimitResponse } from '@/lib/rate-limit';
-import { logMetric } from '@/lib/mongodb';
 import { createResponse } from '@/lib/response';
 
 export async function GET(req: NextRequest) {

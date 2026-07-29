@@ -321,6 +321,9 @@ export default function AdminDashboardPage() {
   const searchRatio = ((stats.countsByType.search || 0) / totalCount) * 100;
   const metooRatio = ((stats.countsByType['me-too'] || 0) / totalCount) * 100;
 
+  // Deduplicate clusters list by unique ID to prevent React children duplicate key warnings! 🚀
+  const uniqueClusters = Array.from(new Map(allClusters.map(c => [c.id, c])).values());
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-10">
       
@@ -542,9 +545,9 @@ export default function AdminDashboardPage() {
               className="w-full bg-slate-950 border border-white/10 rounded-xl px-2 py-2.5 text-xs text-slate-300 focus:outline-none focus:border-amber-500 cursor-pointer"
             >
               <option value=""> Choose a group to inspect </option>
-              {allClusters.map((c) => (
+              {uniqueClusters.map((c) => (
                 <option key={c.id} value={c.id} className="bg-slate-950">
-                  [{c.categoryLabel}] {c.canonicalText.substring(0, 50)}...
+                  [{c.categoryLabel}] {(c.canonicalText || '').substring(0, 50)}...
                 </option>
               ))}
             </select>
@@ -618,11 +621,11 @@ export default function AdminDashboardPage() {
                           className="bg-slate-950 border border-white/5 hover:border-white/10 rounded-lg px-2.5 py-1 text-[10px] text-slate-300 focus:outline-none cursor-pointer max-w-[220px]"
                         >
                           <option value=""> Choose target group </option>
-                          {allClusters
+                          {uniqueClusters
                             .filter(c => c.id !== selectedClusterId)
                             .map(c => (
                               <option key={c.id} value={c.id}>
-                                [{c.categoryLabel}] {c.canonicalText.substring(0, 35)}...
+                                [{c.categoryLabel}] {(c.canonicalText || '').substring(0, 35)}...
                               </option>
                             ))}
                         </select>

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isMongoDbLive } from './mongodb';
-import { isPineconeLive } from './pinecone';
+import { isMongoDbLive, isPineconeLive } from './mongodb';
 
 /**
  * A highly resilient response helper that wraps NextResponse.json.

@@ -1,28 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { APP_COPY } from '@/lib/config/copy';
-import { ButtonSpinner, PageScanner } from '@/components/Loader';
-import { fetchWithRetry } from '@/lib/fetch-retry';
-import AlertModal from '@/components/AlertModal';
-import { useAuth, SignInButton, Show } from '@clerk/nextjs';
-import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useAuth, SignInButton } from '@clerk/nextjs';
 import { 
-  Plus, 
   ArrowRight, 
-  Layers, 
-  AlertTriangle, 
-  Check, 
+  TrendingUp, 
+  ChevronRight, 
+  Search, 
+  Cpu, 
+  Database, 
+  ShieldCheck, 
   Sparkles, 
-  HelpCircle, 
-  ExternalLink,
-  ChevronRight,
-  TrendingUp,
-  Database
+  Layers, 
+  ArrowUp, 
+  Users, 
+  ThumbsUp, 
+  Lock 
 } from 'lucide-react';
-
-const MAX_QUERY_CHARS = 500;
+import { motion, AnimatePresence } from 'framer-motion';
+import { HOMEPAGE_COPY } from '@/lib/config/homepage_copy';
+import { PageScanner } from '@/components/Loader';
 
 interface Cluster {
   id: string;
@@ -34,565 +32,530 @@ interface Cluster {
   sampleVariants: string[];
 }
 
-interface DraftResult {
-  mode: 'match' | 'new';
-  proposedCategory: string;
-  proposedCategoryLabel: string;
-  proposedCategoryDescription: string;
-  proposedCanonicalText: string;
-  cluster?: Cluster;
-}
-
-const DEFAULT_TAXONOMY = [
-  { id: 'software-devtools', label: 'Developer Tools & DX', description: 'Problems related to developer experience, API integrations, build tools, and local workflows' },
-  { id: 'software-saas', label: 'SaaS & B2B Productivity', description: 'Administrative bottlenecks, SaaS subscription issues, collaboration overhead, and calendar sync issues' },
-  { id: 'hardware-iot', label: 'Hardware & Smart Devices', description: 'Smart device connectivity, localized network pairing, specialized hardware adapters, and firmware bugs' },
-  { id: 'ecommerce-ops', label: 'E-commerce & Shipping Ops', description: 'Multi-channel inventory syncing, custom label bottlenecks, and automated return processing' },
-  { id: 'ai-operations', label: 'AI & Data Infrastructure', description: 'High LLM latencies, vector storage sync, parsing unstructured data, and token limit cost controls' },
-];
-
-export default function Home() {
+export default function LandingPage() {
   const { isSignedIn } = useAuth();
-  const [inputText, setInputText] = useState('');
   const [trending, setTrending] = useState<Cluster[]>([]);
-  // const [categories, setCategories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [seedElapsed, setSeedElapsed] = useState<number | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [submittingMessage, setSubmittingMessage] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [loadingNiches, setLoadingNiches] = useState(true);
+
+  // Search Mock Interactive State
+  const [searchMockPhase, setSearchMockPhase] = useState<'idle' | 'typing' | 'scanning' | 'matched'>('idle');
+  const [searchText, setSearchText] = useState('');
   
-  // Custom Alert Modal states
-  const [alertModal, setAlertModal] = useState({
-    isOpen: false,
-    type: 'success' as 'success' | 'error' | 'info',
-    title: '',
-    message: ''
-  });
+  // Submit Mock Interactive State
+  const [submitMockStage, setSubmitMockStage] = useState(0);
 
-  const sanitizeError = (error: any, defaultMessage: string): string => {
-    const msg = error?.message || '';
-    const name = error?.name || '';
-    
-    // Catch rate limiting and convert to friendly guidance, preserving dynamic countdowns
-    if (msg.toLowerCase().includes('try again in')) {
-      return msg;
-    }
-    if (msg.includes('429') || msg.includes('Too Many Requests') || msg.includes('rate limit')) {
-      return 'You are making requests too quickly. Please wait a moment before trying again to keep usage fair!';
-    }
+  // Voting Mock State
+  const [mockUpvoted, setMockUpvoted] = useState(false);
+  const [mockDownvoted, setMockDownvoted] = useState(false);
+  const [mockScore, setMockScore] = useState(12);
 
-    // Catch abort/timeout errors and convert to friendly guidance
-    const isTimeout = name === 'AbortError' || msg.includes('aborted') || msg.includes('abort') || msg.includes('timeout') || msg.includes('timed out');
-    if (isTimeout) {
-      return 'The request took too long to respond. Please check your network connection and try again.';
-    }
-
-    const isCodeError = 
-      msg.includes('fetch failed') ||
-      msg.includes('Topology') ||
-      msg.includes('ReplicaSet') ||
-      msg.includes('SSL') ||
-      msg.includes('connect') ||
-      msg.includes('NetworkError') ||
-      msg.includes('status 5') ||
-      msg.includes('Server Error');
-    
-    if (isCodeError) {
-      return `${defaultMessage} Please check your connection and manually try again.`;
-    }
-    return msg || defaultMessage;
-  };
-  
-  // Submission flow states
-  const [draft, setDraft] = useState<DraftResult | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [customCanonical, setCustomCanonical] = useState('');
-  const [successResult, setSuccessResult] = useState<{ joinedCluster: boolean; cluster: Cluster } | null>(null);
-
+  // 1. Fetch live active niches from MongoDB Atlas to show real-time platform signal! 🚀
   useEffect(() => {
-    async function loadInitialData() {
+    async function loadActiveSignals() {
+      setLoadingNiches(true);
       try {
-        const clustersRes = await fetch('/api/clusters')
-
-        if (clustersRes.ok) {
-          const clusters = await clustersRes.json();
-          setTrending(clusters.slice(0, 4));
+        const res = await fetch('/api/clusters');
+        if (res.ok) {
+          const data = await res.json();
+          setTrending(data.slice(0, 4)); // Show top 4 active clusters
         }
       } catch (err) {
-        console.error('Failed to load initial data:', err);
+        console.error('Failed to load active signals:', err);
+      } finally {
+        setLoadingNiches(false);
       }
     }
-    loadInitialData();
+    loadActiveSignals();
   }, []);
 
-  // Character validation
-  const isQueryTooLong = inputText.length > MAX_QUERY_CHARS;
+  // 2. Interactive Search Mock Typing Loop
+  useEffect(() => {
+    const fullText = HOMEPAGE_COPY.features.list[0]?.interactiveInput || 'flaky microfrontend compile failures';
+    let index = 0;
+    let timer: NodeJS.Timeout;
 
-  // Step 1: Submit Draft (Embed -> Similarity check -> Classify if no match)
-  const handleSubmitDraft = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isSignedIn) return;
-    if (inputText.trim() === '') return;
-    if (isQueryTooLong) return;
+    const runSearchSimulation = () => {
+      setSearchMockPhase('typing');
+      setSearchText('');
+      index = 0;
 
-    setLoading(true);
-    setLoadingMessage(APP_COPY.home.submitButtonLoading);
-    setError(null);
-    setDraft(null);
-    setSuccessResult(null);
-
-    try {
-      const response = await fetchWithRetry('/api/problems', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: inputText,
-          draft: true,
-        }),
-        onRetry: (attempt) => setLoadingMessage(`Retrying... (Attempt ${attempt}/3)`),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'An error occurred during draft creation.');
-      }
-
-      setDraft(data);
-      setSelectedCategory(data.proposedCategory);
-      setCustomCanonical(data.proposedCanonicalText);
-    } catch (err: any) {
-      console.error(err);
-      setError(sanitizeError(err, 'We are experiencing temporary database latency.'));
-    } finally {
-      setLoading(false);
-      setLoadingMessage('');
-    }
-  };
-
-  // Step 2: Confirm & Finalize (Write to DB)
-  const handleConfirmSubmission = async () => {
-    if (!isSignedIn || !draft) return;
-
-    setSubmitting(true);
-    setSubmittingMessage(APP_COPY.draftResult.publishButtonLoading);
-    setError(null);
-
-    const matchingCategoryObj = DEFAULT_TAXONOMY.find(c => c.id === selectedCategory) || {
-      id: selectedCategory,
-      label: draft.proposedCategoryLabel,
-      description: draft.proposedCategoryDescription
+      const typeChar = () => {
+        if (index < fullText.length) {
+          setSearchText(prev => prev + fullText[index]);
+          index++;
+          timer = setTimeout(typeChar, 40);
+        } else {
+          // Finished typing, trigger scan!
+          timer = setTimeout(() => {
+            setSearchMockPhase('scanning');
+            // Scan for 1.5 seconds, then show match!
+            timer = setTimeout(() => {
+              setSearchMockPhase('matched');
+              // Hold match for 4 seconds, then repeat!
+              timer = setTimeout(runSearchSimulation, 4000);
+            }, 1500);
+          }, 800);
+        }
+      };
+      
+      // Start typing delay
+      timer = setTimeout(typeChar, 1000);
     };
 
-    try {
-      const response = await fetchWithRetry('/api/problems', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: inputText,
-          draft: false,
-          confirmedCategory: selectedCategory,
-          confirmedCategoryLabel: matchingCategoryObj.label,
-          confirmedCategoryDescription: matchingCategoryObj.description,
-          confirmedCanonicalText: customCanonical,
-        }),
-        onRetry: (attempt) => setSubmittingMessage(`Retrying... (Attempt ${attempt}/3)`),
-      });
+    runSearchSimulation();
+    return () => clearTimeout(timer);
+  }, []);
 
-      const data = await response.json();
+  // 3. Interactive Submit Lifecycle Stage Loop
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSubmitMockStage(prev => (prev + 1) % 3);
+    }, 3200);
+    return () => clearInterval(interval);
+  }, []);
 
-      if (!response.ok) {
-        throw new Error(data.message || 'An error occurred while publishing.');
+  // 4. Handle Mock Votes toggles
+  const handleMockVote = (type: 'up' | 'down') => {
+    if (type === 'up') {
+      if (mockUpvoted) {
+        setMockUpvoted(false);
+        setMockScore(12);
+      } else {
+        setMockUpvoted(true);
+        setMockDownvoted(false);
+        setMockScore(13);
       }
-
-      setSuccessResult({
-        joinedCluster: data.joinedCluster,
-        cluster: data.cluster
-      });
-      
-      // Refresh home data
-      const clustersRes = await fetchWithRetry('/api/clusters');
-      if (clustersRes.ok) {
-        const clusters = await clustersRes.json();
-        setTrending(clusters.slice(0, 4));
+    } else {
+      if (mockDownvoted) {
+        setMockDownvoted(false);
+        setMockScore(12);
+      } else {
+        setMockDownvoted(true);
+        setMockUpvoted(false);
+        setMockScore(11);
       }
-
-      // Reset submission flow fields
-      setInputText('');
-      setDraft(null);
-    } catch (err: any) {
-      console.error(err);
-      setError(sanitizeError(err, 'We could not complete publishing.'));
-    } finally {
-      setSubmitting(false);
-      setSubmittingMessage('');
-    }
-  };
-
-  const handleSeedDatabase = async () => {
-    setLoading(true);
-    setSeedElapsed(0);
-    const startTime = Date.now();
-    
-    const intervalId = setInterval(() => {
-      setSeedElapsed(Math.round((Date.now() - startTime) / 1000));
-    }, 1000);
-
-    try {
-      const res = await fetchWithRetry('/api/seed', {}, 30000);
-      if (res.ok) {
-        const clustersRes = await fetchWithRetry('/api/clusters');
-        if (clustersRes.ok) {
-          const clusters = await clustersRes.json();
-          setTrending(clusters.slice(0, 4));
-        }
-        setAlertModal({
-          isOpen: true,
-          type: 'success',
-          title: 'Seeding Completed!',
-          message: 'The Pinecone index has been populated with 5 professional, high-signal niches and their phrasing variants.'
-        });
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      clearInterval(intervalId);
-      setLoading(false);
-      setSeedElapsed(null);
     }
   };
 
   return (
-    <div className="flex-grow flex flex-col items-center justify-start py-12 px-4 sm:px-6 lg:px-8">
+    <div className="flex-grow flex flex-col items-center justify-start py-8 px-4 sm:px-6 lg:px-8 space-y-24 bg-slate-950 text-slate-100 overflow-hidden relative selection:bg-amber-500/25 selection:text-amber-200">
       
-      {/* Seed Helper for empty DBs */}
-      {(
-        <div className="mb-8 w-full max-w-xl p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-between gap-4">
-          <div className="flex gap-2">
-            <Database className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-mono text-xs text-amber-400 font-bold">{APP_COPY.home.seedToolkitTitle}</p>
-              <p className="text-xs text-slate-300">{APP_COPY.home.seedToolkitDesc}</p>
-            </div>
-          </div>
-          <button 
-            onClick={handleSeedDatabase}
-            disabled={loading}
-            className="shrink-0 font-mono text-[10px] uppercase font-bold tracking-wider bg-amber-500 text-slate-950 px-3 py-1.5 rounded hover:bg-amber-600 cursor-pointer disabled:opacity-50"
-          >
-            {loading 
-              ? `${APP_COPY.home.seedButtonLoading} (${seedElapsed !== null ? `${seedElapsed}s` : 'loading...'})` 
-              : APP_COPY.home.seedButtonText}
-          </button>
-        </div>
-      )}
+      {/* Decorative Brand Ambient Glowing Spots */}
+      <div className="absolute top-20 left-1/4 w-[400px] h-[400px] bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-96 right-1/4 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Submission Form Section */}
-      <div className="w-full max-w-4xl text-center mt-6 mb-16 relative">
+      {/* =========================================================================
+          🚀 HERO SECTION
+         ========================================================================= */}
+      <section className="w-full max-w-6xl text-center pt-12 md:pt-16 flex flex-col items-center justify-center relative">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/5 font-mono text-[9px] text-amber-500 font-bold uppercase tracking-[0.2em] mb-6 select-none shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
         >
-          <span className="font-mono text-[10px] tracking-[0.3em] bg-white/5 border border-white/10 px-3 py-1 rounded-full uppercase text-slate-400">
-            {APP_COPY.home.badge}
-          </span>
-          <h1 className="mt-6 text-4xl sm:text-6xl font-display font-bold tracking-tight bg-gradient-to-r from-amber-400 via-coral-400 to-teal-400 bg-clip-text text-transparent italic select-none">
-            {APP_COPY.home.heroTitle}
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-slate-400 text-sm sm:text-base leading-relaxed">
-            {APP_COPY.home.heroSubtitle}
-          </p>
+          <Sparkles className="h-3 w-3 animate-spin" style={{ animationDuration: '4s' }} /> {HOMEPAGE_COPY.hero.badge}
         </motion.div>
 
-        {/* Input Form Box */}
-        <motion.div 
-          className="mx-auto mt-10 max-w-2xl"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <motion.h1 
+          className="text-3xl sm:text-5xl md:text-6xl font-display font-bold italic tracking-tight leading-tight py-2 bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400 bg-clip-text text-transparent max-w-4xl"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.6 }}
+        >
+          {HOMEPAGE_COPY.hero.title}
+        </motion.h1>
+
+        <motion.p
+          className="mt-6 text-sm sm:text-base md:text-lg text-slate-400 max-w-2xl font-sans leading-relaxed"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
-          <AnimatePresence mode="wait">
-            {!draft && !successResult ? (
-              <motion.form 
-                onSubmit={handleSubmitDraft}
-                className="relative p-2 bg-slate-900/60 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col md:flex-row gap-2"
-                exit={{ opacity: 0, scale: 0.95 }}
-              >
-                <div className="flex-grow flex flex-col items-start px-3 py-2">
-                  <textarea
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder={APP_COPY.home.inputPlaceholder}
-                    className="w-full bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none resize-none h-20 text-sm py-1"
-                    disabled={loading}
-                  />
-                  
-                  {/* Character Counter & Warnings */}
-                  <div className="w-full flex items-center justify-between font-mono text-[10px] text-slate-500 select-none mt-1">
-                    <span>
-                      {isQueryTooLong ? (
-                        <span className="text-red-500 flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3 inline" /> {APP_COPY.home.characterWarning}
-                        </span>
-                      ) : (
-                        <span>{APP_COPY.home.inputContextHelp}</span>
-                      )}
-                    </span>
-                    <span className={isQueryTooLong ? 'text-red-500 font-bold' : ''}>
-                      {inputText.length}/{MAX_QUERY_CHARS}
-                    </span>
-                  </div>
-                </div>
+          {HOMEPAGE_COPY.hero.subtitle}
+        </motion.p>
 
-                <div className="shrink-0 flex items-center md:justify-end justify-center px-2 py-1">
-                  {isSignedIn ? (
-                    <button
-                      type="submit"
-                      disabled={loading || inputText.trim() === '' || isQueryTooLong}
-                      className="w-full md:w-auto h-12 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 px-6 rounded-xl hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-                    >
-                      {loading ? (
-                        <span className="flex items-center gap-2">
-                          <ButtonSpinner size="sm" />
-                          {loadingMessage || APP_COPY.home.submitButtonLoading}
-                        </span>
-                      ) : (
-                        <>
-                          {APP_COPY.home.submitButtonText} <ArrowRight className="h-4 w-4" />
-                        </>
-                      )}
-                    </button>
-                  ) : (
-                      <Show when={'signed-out'}>
-                        <SignInButton mode="modal">
-                          <button
-                              type="button"
-                              className="w-full md:w-auto h-12 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 px-6 rounded-xl active:scale-95 transition-all cursor-pointer"
-                          >
-                            {APP_COPY.home.signInToSubmitText}
-                          </button>
-                        </SignInButton>
-                      </Show>
+        {/* Hero CTAs */}
+        <motion.div
+          className="mt-10 flex flex-row items-center justify-center gap-4 w-full flex-wrap"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          <Link
+            href="/submit"
+            className="h-12 px-6 flex items-center justify-center gap-2 font-mono text-xs uppercase tracking-wider font-bold bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] cursor-pointer"
+          >
+            <Layers className="h-4 w-4" /> {HOMEPAGE_COPY.hero.ctaValidate}
+          </Link>
+          <Link
+            href="/browse"
+            className="h-12 px-6 flex items-center justify-center gap-2 font-mono text-xs uppercase tracking-wider font-bold bg-white/5 border border-white/10 text-slate-200 rounded-xl hover:bg-white/10 hover:border-white/15 active:scale-95 transition-all cursor-pointer"
+          >
+            {HOMEPAGE_COPY.hero.ctaExplore} <ArrowRight className="h-4 w-4" />
+          </Link>
+        </motion.div>
+      </section>
 
-                  )}
-                </div>
-              </motion.form>
-            ) : draft && !successResult ? (
-              // STEP 2: DRAFT RESOLUTION SCREEN (MEET MATCH OR CREATE NEW)
-              <motion.div 
-                className="text-left bg-slate-900/95 border-glow border rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-2xl"
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-              >
-                {draft.mode === 'match' ? (
-                  /* CASE A: JOIN EXISTING CLUSTER */
-                  <div>
-                    <div className="flex items-center gap-2 text-amber-500 font-mono text-xs uppercase tracking-widest font-bold mb-4">
-                      <TrendingUp className="h-4 w-4" /> {APP_COPY.draftResult.matchHeader}
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-100 leading-tight">
-                      {APP_COPY.draftResult.matchTitle}
-                    </h2>
-                    <p className="text-slate-400 text-sm mt-2">
-                      {APP_COPY.draftResult.matchDesc} <span className="font-mono text-xs font-bold text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded bg-amber-500/5">{draft.cluster?.memberCount} {APP_COPY.draftResult.peopleAffected}</span>.
-                    </p>
+      {/* =========================================================================
+          💡 ABOUT / WHAT IS IT SECTION
+         ========================================================================= */}
+      <section className="w-full max-w-5xl bg-slate-900/20 border border-white/5 p-8 sm:p-12 rounded-3xl backdrop-blur-2xl relative overflow-hidden flex flex-col md:flex-row gap-8 items-center justify-between shadow-xl">
+        <div className="absolute top-0 left-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="space-y-3 md:max-w-xs shrink-0 text-center md:text-left">
+          <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
+            ABOUT THE PLATFORM
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-display font-bold italic text-slate-100">
+            {HOMEPAGE_COPY.about.title}
+          </h2>
+          <p className="text-xs text-slate-400 font-mono tracking-wide leading-relaxed">
+            {HOMEPAGE_COPY.about.subtitle}
+          </p>
+        </div>
 
-                    {/* Matched Cluster Details Box */}
-                    <div className="mt-6 p-5 rounded-xl border border-white/5 bg-slate-950/60 relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 p-2 text-[10px] font-mono tracking-widest text-slate-600 bg-white/5 uppercase rounded-bl border-l border-b border-white/5">
-                        {APP_COPY.draftResult.clusterLabel}
-                      </div>
-                      <div className="font-mono text-[10px] text-amber-500 tracking-wider font-bold mb-1 uppercase">
-                        {draft.cluster?.categoryLabel}
-                      </div>
-                      <p className="text-slate-200 text-base font-semibold leading-relaxed pr-12">
-                        "{draft.cluster?.canonicalText}"
-                      </p>
+        <p className="text-slate-300 text-sm leading-relaxed max-w-xl font-sans text-center md:text-left border-t md:border-t-0 md:border-l border-white/5 pt-6 md:pt-0 md:pl-8">
+          {HOMEPAGE_COPY.about.description}
+        </p>
+      </section>
 
-                      <div className="mt-4 border-t border-white/5 pt-4">
-                        <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block mb-2">HOW OTHERS EXPRESSED IT:</span>
-                        <ul className="space-y-1 text-xs text-slate-400 italic">
-                          {draft.cluster?.sampleVariants.slice(0, 3).map((variant, i) => (
-                            <li key={i} className="line-clamp-1">
-                              • "{variant}"
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
+      {/* =========================================================================
+          🛠️ SYSTEM MODULES / FEATURES SECTION
+         ========================================================================= */}
+      <motion.section 
+        layout 
+        transition={{ type: 'spring', stiffness: 220, damping: 28 }}
+        className="w-full max-w-6xl space-y-16"
+      >
+        <div className="text-center space-y-3">
+          <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
+            CORE ENGINE CAPABILITIES
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-display font-bold italic text-slate-100">
+            {HOMEPAGE_COPY.features.title}
+          </h2>
+          <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans leading-relaxed">
+            {HOMEPAGE_COPY.features.subtitle}
+          </p>
+        </div>
 
-                    <div className="mt-8 flex flex-col sm:flex-row items-center gap-3 justify-end">
-                      <button
-                        onClick={() => { setDraft(null); setError(null); }}
-                        className="w-full sm:w-auto px-5 py-2.5 font-mono text-xs tracking-wider uppercase text-slate-400 hover:text-slate-100 transition-colors cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleConfirmSubmission}
-                        disabled={submitting}
-                        className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 px-6 rounded-xl hover:opacity-90 transition-all cursor-pointer"
-                      >
-                        {submitting ? submittingMessage || APP_COPY.draftResult.publishButtonLoading : APP_COPY.draftResult.publishButtonText}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* CASE B: NEW SEED CLUSTER (LLM Auto-classification + User Correction) */
-                  <div>
-                    <div className="flex items-center gap-2 text-teal-500 font-mono text-xs uppercase tracking-widest font-bold mb-4">
-                      <Sparkles className="h-4 w-4 animate-pulse" /> {APP_COPY.draftResult.newHeader}
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-100 leading-tight">
-                      {APP_COPY.draftResult.newTitle}
-                    </h2>
-                    <p className="text-slate-400 text-sm mt-2">
-                      {APP_COPY.draftResult.newDesc}
-                    </p>
+        {/* Feature 1: Semantic Search */}
+        <motion.div 
+          layout 
+          transition={{ type: 'spring', stiffness: 220, damping: 28 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center"
+        >
+          <div className="space-y-4">
+            <span className="font-mono text-[10px] text-amber-500 tracking-wider font-bold block">
+              {HOMEPAGE_COPY.features.list[0]?.badge}
+            </span>
+            <h3 className="text-2xl font-bold text-slate-100 italic font-display">
+              {HOMEPAGE_COPY.features.list[0]?.title}
+            </h3>
+            <p className="text-slate-400 text-sm leading-relaxed font-sans">
+              {HOMEPAGE_COPY.features.list[0]?.desc}
+            </p>
+          </div>
+          
+          {/* Interactive Search Console Mock */}
+          <div className="p-6 bg-slate-900/50 border border-white/10 rounded-2xl shadow-2xl relative font-mono text-xs select-none">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4 text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+              <span>{HOMEPAGE_COPY.features.list[0]?.interactiveTitle}</span>
+              <div className="flex gap-1">
+                <span className="w-2 h-2 rounded-full bg-red-500/40" />
+                <span className="w-2 h-2 rounded-full bg-amber-500/40" />
+                <span className="w-2 h-2 rounded-full bg-teal-500/40" />
+              </div>
+            </div>
 
-                    {/* Auto-categorization Box */}
-                    <div className="mt-6 space-y-6">
-                      
-                      {/* Canonical representation input */}
-                      <div>
-                        <label className="font-mono text-[10px] text-slate-400 tracking-wider block uppercase mb-1.5 font-bold">
-                          {APP_COPY.draftResult.proposedCanonicalLabel}
-                        </label>
-                        <input
-                          type="text"
-                          value={customCanonical}
-                          onChange={(e) => setCustomCanonical(e.target.value)}
-                          className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500/50"
-                        />
-                      </div>
+            {/* 🚀 motion.div layout enables gorgeous, smooth height-easing transitions! */}
+            <motion.div 
+              layout 
+              transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+              className="bg-slate-950/80 rounded-xl p-4 border border-white/5 h-[185px] flex flex-col justify-between space-y-4"
+            >
+              <div className="flex items-start gap-2">
+                <span className="text-amber-500 font-bold shrink-0">$ query:</span>
+                <span className="text-slate-300">
+                  {searchText}
+                  {searchMockPhase === 'typing' && <span className="animate-pulse font-bold text-amber-500">|</span>}
+                </span>
+              </div>
 
-                      {/* Dropdown Correction */}
-                      <div>
-                        <label className="font-mono text-[10px] text-slate-400 tracking-wider block uppercase mb-1.5 font-bold flex justify-between">
-                          <span>{APP_COPY.draftResult.proposedCategoryLabel}</span>
-                          <span className="text-[9px] text-slate-500 font-normal normal-case">Correct if wrong</span>
-                        </label>
-                        <select
-                          value={selectedCategory}
-                          onChange={(e) => setSelectedCategory(e.target.value)}
-                          className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-amber-500/50 cursor-pointer"
-                        >
-                          {DEFAULT_TAXONOMY.map((cat) => (
-                            <option key={cat.id} value={cat.id} className="bg-slate-950">
-                              {cat.label}
-                            </option>
-                          ))}
-                          {selectedCategory !== '' && !DEFAULT_TAXONOMY.some(c => c.id === selectedCategory) && (
-                            <option value={selectedCategory} className="bg-slate-950">
-                              {draft.proposedCategoryLabel} (Auto-Generated)
-                            </option>
-                          )}
-                        </select>
-                      </div>
-
-                    </div>
-
-                    <div className="mt-8 flex flex-col sm:flex-row items-center gap-3 justify-end">
-                      <button
-                        onClick={() => { setDraft(null); setError(null); }}
-                        className="w-full sm:w-auto px-5 py-2.5 font-mono text-xs tracking-wider uppercase text-slate-400 hover:text-slate-100 transition-colors cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleConfirmSubmission}
-                        disabled={submitting}
-                        className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-teal-500 to-amber-500 text-slate-950 px-6 rounded-xl hover:from-teal-600 hover:to-amber-600 transition-all cursor-pointer"
-                      >
-                        {submitting ? submittingMessage || APP_COPY.draftResult.publishButtonLoading : APP_COPY.draftResult.publishButtonText}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              // STEP 3: SUCCESS CONFIRMATION MODAL STATE
-              <motion.div 
-                className="text-center bg-slate-900/95 border border-teal-500/30 rounded-2xl shadow-2xl p-8 backdrop-blur-2xl max-w-xl mx-auto"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <div className="mx-auto w-12 h-12 bg-teal-500/25 border border-teal-500/50 rounded-full flex items-center justify-center text-teal-400 mb-4 animate-bounce">
-                  <Check className="h-6 w-6" />
-                </div>
-                <h2 className="text-2xl font-bold font-display italic text-slate-100">
-                  {APP_COPY.draftResult.successHeader}
-                </h2>
-                
-                {successResult?.joinedCluster ? (
-                  <p className="text-slate-400 text-sm mt-3 leading-relaxed">
-                    {APP_COPY.draftResult.successMatchedDesc} <span className="text-slate-200 block font-semibold mt-1 italic">"{successResult.cluster.canonicalText}"</span>
-                  </p>
-                ) : (
-                  <p className="text-slate-400 text-sm mt-3 leading-relaxed">
-                    {APP_COPY.draftResult.successSeededDesc} <span className="text-slate-200 block font-semibold mt-1 italic">"{successResult?.cluster.canonicalText}"</span>
-                  </p>
-                )}
-
-                <div className="mt-8 flex items-center gap-4 justify-center">
-                  <Link
-                    href={`/cluster/${successResult?.cluster.id}`}
-                    className="font-mono text-xs font-bold uppercase bg-white/10 hover:bg-white/15 px-5 py-2.5 rounded-xl border border-white/5 text-slate-100 flex items-center gap-2 cursor-pointer"
+              <AnimatePresence mode="wait">
+                {searchMockPhase === 'scanning' && (
+                  <motion.div 
+                    key="scanning"
+                    className="flex items-center gap-2 text-teal-400 text-[10px] font-bold tracking-widest uppercase animate-pulse"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                   >
-                    {APP_COPY.draftResult.viewDetailsButton} <ChevronRight className="h-4 w-4" />
-                  </Link>
+                    <Cpu className="h-4 w-4 animate-spin" /> Scanning HNSW MongoDB Vector Index...
+                  </motion.div>
+                )}
+
+                {searchMockPhase === 'matched' && (
+                  <motion.div
+                    key="matched"
+                    className="p-3 bg-teal-500/5 border border-teal-500/20 rounded-xl space-y-1.5"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <div className="flex items-center justify-between text-[9px] text-teal-400 font-bold uppercase tracking-wider">
+                      <span>Matched Problem Centroid</span>
+                      <span className="bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">{HOMEPAGE_COPY.features.list[0]?.interactiveScore}</span>
+                    </div>
+                    <p className="text-xs text-slate-200 leading-normal italic">&quot;{HOMEPAGE_COPY.features.list[0]?.interactiveMatch}&quot;</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Feature 2: Seeding Lifecycle (Flipped) */}
+        <motion.div 
+          layout 
+          transition={{ type: 'spring', stiffness: 220, damping: 28 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center pt-6"
+        >
+          {/* Interactive Seeding lifecycle Console Mock (Left column) */}
+          <div className="lg:order-last space-y-4">
+            <span className="font-mono text-[10px] text-amber-500 tracking-wider font-bold block">
+              {HOMEPAGE_COPY.features.list[1]?.badge}
+            </span>
+            <h3 className="text-2xl font-bold text-slate-100 italic font-display">
+              {HOMEPAGE_COPY.features.list[1]?.title}
+            </h3>
+            <p className="text-slate-400 text-sm leading-relaxed font-sans">
+              {HOMEPAGE_COPY.features.list[1]?.desc}
+            </p>
+          </div>
+
+          <div className="p-6 bg-slate-900/50 border border-white/10 rounded-2xl shadow-2xl relative font-mono text-xs select-none">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4 text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+              <span>{HOMEPAGE_COPY.features.list[1]?.interactiveTitle}</span>
+              <div className="flex gap-1.5">
+                <span className={`w-2 h-2 rounded-full transition-colors duration-500 ${submitMockStage === 0 ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-white/5'}`} />
+                <span className={`w-2 h-2 rounded-full transition-colors duration-500 ${submitMockStage === 1 ? 'bg-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]' : 'bg-white/5'}`} />
+                <span className={`w-2 h-2 rounded-full transition-colors duration-500 ${submitMockStage === 2 ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-white/5'}`} />
+              </div>
+            </div>
+
+            {/* 🚀 motion.div layout enables gorgeous, smooth height-easing transitions! */}
+            <motion.div 
+              layout 
+              transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+              className="bg-slate-950/80 rounded-xl p-4 border border-white/5 space-y-4 h-[185px] flex flex-col justify-center"
+            >
+              {(HOMEPAGE_COPY.features.list[1]?.stages || []).map((stage, idx) => {
+                const isActive = submitMockStage === idx;
+                return (
+                  <div 
+                    key={idx} 
+                    className={`transition-all duration-500 ${isActive ? 'opacity-100 scale-100 translate-x-1.5' : 'opacity-25 scale-95 pointer-events-none'}`}
+                  >
+                    <span className={`font-bold block text-[9px] uppercase tracking-wider mb-0.5 ${isActive ? 'text-amber-500' : 'text-slate-500'}`}>
+                      {stage.label}
+                    </span>
+                    <p className={`text-xs leading-normal ${isActive ? 'text-slate-200' : 'text-slate-400'}`}>
+                      {isActive ? stage.value : '...'}
+                    </p>
+                  </div>
+                );
+              })}
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Feature 3: Reddit-Style voting */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center pt-6">
+          <div className="space-y-4">
+            <span className="font-mono text-[10px] text-amber-500 tracking-wider font-bold block">
+              {HOMEPAGE_COPY.features.list[2]?.badge}
+            </span>
+            <h3 className="text-2xl font-bold text-slate-100 italic font-display">
+              {HOMEPAGE_COPY.features.list[2]?.title}
+            </h3>
+            <p className="text-slate-400 text-sm leading-relaxed font-sans">
+              {HOMEPAGE_COPY.features.list[2]?.desc}
+            </p>
+          </div>
+
+          {/* Interactive Voting Console Mock */}
+          <div className="p-6 bg-slate-900/50 border border-white/10 rounded-2xl shadow-2xl relative select-none">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-5 font-mono text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+              <span>{HOMEPAGE_COPY.features.list[2]?.interactiveTitle}</span>
+            </div>
+
+            {/* Simulated Solution Card */}
+            <div className="p-5 bg-slate-950/60 border border-white/5 rounded-xl flex flex-col gap-3 backdrop-blur-xl">
+              <div className="flex items-start gap-4">
+                {/* Voting Stack */}
+                <div className="flex flex-col items-center gap-1 shrink-0 font-mono">
                   <button
-                    onClick={() => { setSuccessResult(null); setDraft(null); setInputText(''); setError(null); }}
-                    className="font-mono text-xs font-bold uppercase bg-gradient-to-r from-brand-amber to-brand-coral hover:opacity-90 text-slate-950 px-5 py-2.5 rounded-xl cursor-pointer"
+                    onClick={() => handleMockVote('up')}
+                    className={`w-7 h-7 rounded border flex items-center justify-center cursor-pointer transition-all ${
+                      mockUpvoted
+                        ? 'bg-amber-500/20 text-brand-amber border-brand-amber/35 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
+                        : 'bg-slate-900 text-slate-400 border-white/5 hover:text-slate-200'
+                    }`}
                   >
-                    {APP_COPY.draftResult.submitAnotherButton}
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <span className={`text-[10px] font-bold ${mockUpvoted ? 'text-brand-amber' : mockDownvoted ? 'text-rose-500' : 'text-slate-400'}`}>
+                    {mockScore > 0 ? `+${mockScore}` : mockScore}
+                  </span>
+                  <button
+                    onClick={() => handleMockVote('down')}
+                    className={`w-7 h-7 rounded border flex items-center justify-center cursor-pointer transition-all ${
+                      mockDownvoted
+                        ? 'bg-rose-500/20 text-rose-500 border-rose-500/35 shadow-[0_0_10px_rgba(239,68,68,0.15)]'
+                        : 'bg-slate-900 text-slate-400 border-white/5 hover:text-slate-200'
+                    }`}
+                  >
+                    <ArrowUp className="h-3.5 w-3.5 rotate-180" />
                   </button>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
-          {/* Local error panel */}
-          {error && (
-            <motion.div 
-              className="mt-4 p-4 bg-red-950/40 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-300 text-xs text-left"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>{error}</span>
-            </motion.div>
-          )}
-        </motion.div>
-      </div>
+                {/* Content */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-slate-200 leading-none">{HOMEPAGE_COPY.features.list[2]?.solName}</h4>
+                    <span className="text-[8px] font-mono text-teal-400 uppercase bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-500/10">verified</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed font-sans">{HOMEPAGE_COPY.features.list[2]?.solDesc}</p>
+                </div>
+              </div>
 
-      {/* TRENDING CLUSTERS SECTION (BELOW THE FOLD) */}
-      <div className="w-full max-w-6xl mt-12 border-t border-white/5 pt-16">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
+              <div className="pt-2 border-t border-white/5">
+                <span className="font-mono text-[9px] text-amber-500 uppercase tracking-widest font-bold">
+                  {HOMEPAGE_COPY.features.list[2]?.reviewsCount}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </motion.section>
+
+      {/* =========================================================================
+          👥 THE ECOSYSTEM (REPORTERS VS BUILDERS) SECTION
+         ========================================================================= */}
+      <section className="w-full max-w-6xl space-y-16">
+        <div className="text-center space-y-3">
+          <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
+            THE PLATFORM PARTICIPANTS
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-display font-bold italic text-slate-100">
+            {HOMEPAGE_COPY.ecosystem.title}
+          </h2>
+          <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans leading-relaxed">
+            {HOMEPAGE_COPY.ecosystem.subtitle}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+          
+          {/* Reporter Card */}
+          <div className="p-8 bg-slate-900/30 border border-white/5 rounded-2xl flex flex-col justify-between shadow-xl relative overflow-hidden backdrop-blur-3xl group hover:border-white/10 transition-all duration-300">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="space-y-6">
+              <div className="space-y-1">
+                <span className="font-mono text-[9px] text-amber-500 uppercase tracking-widest font-bold block">ROLE DEFINITION</span>
+                <h3 className="text-2xl font-bold font-display italic text-slate-100">{HOMEPAGE_COPY.ecosystem.reporters.title}</h3>
+                <p className="text-xs text-slate-400 font-mono tracking-wide">{HOMEPAGE_COPY.ecosystem.reporters.subtitle}</p>
+              </div>
+
+              <div className="space-y-4">
+                {HOMEPAGE_COPY.ecosystem.reporters.benefits.map((ben, idx) => (
+                  <div key={idx} className="flex gap-3">
+                    <span className="font-mono text-[9px] text-amber-500/60 font-bold pt-1">0{idx+1} /</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-200">{ben.title}</h4>
+                      <p className="text-[11px] text-slate-400 leading-relaxed mt-1 font-sans">{ben.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 pt-4 border-t border-white/5 flex">
+              <Link
+                href="/submit"
+                className="font-mono text-[10px] tracking-widest uppercase font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1.5 transition-colors"
+              >
+                Launch Problem Seeder <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Builder Card */}
+          <div className="p-8 bg-slate-900/30 border border-white/5 rounded-2xl flex flex-col justify-between shadow-xl relative overflow-hidden backdrop-blur-3xl group hover:border-white/10 transition-all duration-300">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="space-y-6">
+              <div className="space-y-1">
+                <span className="font-mono text-[9px] text-teal-400 uppercase tracking-widest font-bold block">ROLE PROMOTION</span>
+                <h3 className="text-2xl font-bold font-display italic text-slate-100">{HOMEPAGE_COPY.ecosystem.builders.title}</h3>
+                <p className="text-xs text-slate-400 font-mono tracking-wide">{HOMEPAGE_COPY.ecosystem.builders.subtitle}</p>
+              </div>
+
+              <div className="space-y-4">
+                {HOMEPAGE_COPY.ecosystem.builders.benefits.map((ben, idx) => (
+                  <div key={idx} className="flex gap-3">
+                    <span className="font-mono text-[9px] text-teal-400/60 font-bold pt-1">0{idx+1} /</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-200">{ben.title}</h4>
+                      <p className="text-[11px] text-slate-400 leading-relaxed mt-1 font-sans">{ben.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 pt-4 border-t border-white/5 flex">
+              <Link
+                href="/browse"
+                className="font-mono text-[10px] tracking-widest uppercase font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1.5 transition-colors"
+              >
+                Scan Validated Niches <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* =========================================================================
+          📊 ACTIVE PROBLEM CAROUSEL / LIVE SIGNALS SECTION
+         ========================================================================= */}
+      <section className="w-full max-w-6xl space-y-12">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-display font-bold italic flex items-center gap-2.5">
-              <TrendingUp className="h-5 w-5 text-amber-500" /> {APP_COPY.home.trendingTitle}
+            <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
+              PLATFORM TELEMETRY
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-display font-bold italic flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-amber-500" /> {HOMEPAGE_COPY.activeSignals.title}
             </h2>
             <p className="text-slate-400 text-xs sm:text-sm font-mono tracking-wider mt-1">
-              {APP_COPY.home.trendingSubtitle}
+              {HOMEPAGE_COPY.activeSignals.subtitle}
             </p>
           </div>
           <Link
             href="/browse"
-            className="mt-4 sm:mt-0 font-mono text-[10px] tracking-widest uppercase font-bold text-slate-400 hover:text-slate-100 flex items-center gap-1.5 cursor-pointer group"
+            className="font-mono text-[10px] tracking-widest uppercase font-bold text-slate-400 hover:text-slate-100 flex items-center gap-1.5 transition-colors group cursor-pointer"
           >
-            {APP_COPY.home.browseAllLink} <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
+            {HOMEPAGE_COPY.activeSignals.ctaText} <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
 
         {trending.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {trending.map((cluster, i) => (
+            {trending.map((cluster) => (
               <Link 
                 key={cluster.id}
                 href={`/cluster/${cluster.id}`}
@@ -602,42 +565,33 @@ export default function Home() {
                   <div className="flex items-center justify-between font-mono text-[10px] tracking-widest uppercase mb-3">
                     <span className="text-amber-500 font-bold">{cluster.categoryLabel}</span>
                     <span className="text-slate-500 bg-white/5 px-2 py-0.5 rounded flex items-center gap-1">
-                      {APP_COPY.home.signalSizeLabel} <strong className="text-slate-300 font-semibold">{cluster.memberCount}</strong>
+                      Signal: <strong className="text-slate-300 font-semibold">{cluster.memberCount}</strong>
                     </span>
                   </div>
                   <p className="text-slate-200 font-medium text-base leading-relaxed group-hover:text-white transition-colors">
-                    "{cluster.canonicalText}"
+                    &quot;{cluster.canonicalText}&quot;
                   </p>
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
                   <span className="font-mono text-[9px] text-slate-500 uppercase tracking-widest italic">
-                    {cluster.sampleVariants.length} {APP_COPY.home.distinctPhrasingsSuffix}
+                    {cluster.sampleVariants.length} variations of this problem reported
                   </span>
                   <span className="text-[10px] font-mono text-amber-500 group-hover:text-amber-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {APP_COPY.home.inspectLink} <ChevronRight className="h-3 w-3" />
+                    Inspect <ChevronRight className="h-3 w-3" />
                   </span>
                 </div>
               </Link>
             ))}
           </div>
-        ) : loading ? (
-          <PageScanner message="Scanning database signals..." size="sm" />
+        ) : loadingNiches ? (
+          <PageScanner message="Scanning database signals..." size="md" /> // 🚀 Stunning centered loader!
         ) : (
-          <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-xs uppercase tracking-widest">
-            No active collective signals found.
+          <div className="text-center py-16 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-xs uppercase tracking-widest">
+            No active collective signals found. Run seeder to get started!
           </div>
         )}
-      </div>
-
-      {/* Alert Modal */}
-      <AlertModal
-        isOpen={alertModal.isOpen}
-        type={alertModal.type}
-        title={alertModal.title}
-        message={alertModal.message}
-        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
-      />
+      </section>
 
     </div>
   );

@@ -40,6 +40,14 @@ export default function Header() {
               isActive('/') ? 'text-slate-100 border-b border-brand-amber pb-1' : ''
             }`}
           >
+            Home
+          </Link>
+          <Link
+            href="/submit"
+            className={`transition-colors duration-200 hover:text-slate-100 ${
+              isActive('/submit') ? 'text-slate-100 border-b border-brand-amber pb-1' : ''
+            }`}
+          >
             Submit
           </Link>
           <Link
