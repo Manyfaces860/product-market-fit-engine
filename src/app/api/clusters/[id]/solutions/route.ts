@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { getClusterById, getDb } from '@/lib/mongodb';
+import { getClusterById, getDb, promoteUserToBuilder } from '@/lib/mongodb';
 import { MongoSolutionDocument as Solution } from '@/lib/models/schema';
 import { blastLaunchNotification } from '@/lib/resend';
 
@@ -109,6 +109,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // 6. Persist directly to MongoDB 🚀
     const db = await getDb();
     await db.collection('solutions').insertOne(newSolution);
+
+    // 6.5 Promote user to Builder in MongoDB users collection! 🚀
+    await promoteUserToBuilder(userId);
 
     // 7. Dispatch automated launch notifications to co-signers in the background
     // Running this in the background guarantees an instantaneous HTTP 200 response for the Builder!

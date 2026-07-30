@@ -1,5 +1,7 @@
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
+import { getUserByClerkId } from '@/lib/mongodb';
+import { ROLE_PERKS_CONFIG } from '@/lib/config/perks';
 
 // -------------------------------------------------------------
 // 🛡️ UPSTASH REDIS MOCK FOR TESTING / LOCAL DEVS WITHOUT ENVS
@@ -152,8 +154,28 @@ export async function rateLimit(identifier: string): Promise<{
   remaining: number;
   reset: number;
 }> {
-  // 1. Check Minute Limit
-  const minLimit = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 10);
+  // 1. Resolve role-based quotas dynamically! 🚀
+  let minLimit = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 5);
+  let dayLimit = Number(process.env.RATE_LIMIT_DAILY_MAX_REQUESTS || 50);
+
+  // If identifier is a Clerk User ID, check MongoDB user role!
+  if (identifier && identifier.startsWith('user_')) {
+    try {
+      const user = await getUserByClerkId(identifier);
+      if (user) {
+        const perks = ROLE_PERKS_CONFIG[user.role];
+        if (perks) {
+          minLimit = perks.rateLimitPerMin;
+          dayLimit = perks.rateLimitPerDay;
+          console.log(`[RateLimit] Dynamic Quota matched for ${user.name} (${perks.label}): ${minLimit}/min, ${dayLimit}/day.`);
+        }
+      }
+    } catch (dbError) {
+      console.warn(`[RateLimit] Failed to fetch user role for ${identifier}, falling back to defaults.`, dbError);
+    }
+  }
+
+  // 2. Check Minute Limit
   const minWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
   
   const minResult = await checkWindow(identifier, 'min', minLimit, minWindowMs);
@@ -161,8 +183,7 @@ export async function rateLimit(identifier: string): Promise<{
     return minResult;
   }
 
-  // 2. Check Daily Limit
-  const dayLimit = Number(process.env.RATE_LIMIT_DAILY_MAX_REQUESTS || 50);
+  // 3. Check Daily Limit
   const dayWindowMs = 24 * 60 * 60 * 1000; // 24 hours
   
   const dayResult = await checkWindow(identifier, 'day', dayLimit, dayWindowMs);

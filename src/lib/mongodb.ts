@@ -4,7 +4,8 @@ import {
   MongoProblemDocument, 
   MongoSolutionDocument, 
   MongoReviewDocument, 
-  CategoryWithCount 
+  CategoryWithCount,
+  MongoUserDocument
 } from './models/schema';
 
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -473,9 +474,10 @@ export async function upsertCluster(cluster: MongoClusterDocument, embedding: nu
   try {
     const db = await getDb();
     
-    // Merge the vector array into the document
+    // Merge the vector array and compute variantCount automatically 🚀
     const clusterDoc = {
       ...cluster,
+      variantCount: cluster.sampleVariants?.length || 0,
       embedding
     };
     delete (clusterDoc as any)._id; // Clean ID
@@ -623,6 +625,22 @@ async function joinMongoDataToClusters(clusters: any[]): Promise<any[]> {
       .find({ clusterId: { $in: clusterIds } })
       .toArray();
 
+    // 🚀 Fetch corresponding builder profile details from the users collection in batch!
+    const builderIds = Array.from(new Set(solutions.map((s: any) => s.builderId).filter(Boolean)));
+    const builders = builderIds.length > 0 
+      ? await db.collection('users').find({ userId: { $in: builderIds } }).toArray()
+      : [];
+
+    // Map builder details by userId for instant O(1) matching!
+    const buildersById = builders.reduce((acc: Record<string, any>, u: any) => {
+      acc[u.userId] = {
+        customBio: u.customBio || '',
+        githubUrl: u.githubUrl || '',
+        websiteUrl: u.websiteUrl || ''
+      };
+      return acc;
+    }, {} as Record<string, any>);
+
     // Group solutions by clusterId
     const solutionsByCluster = solutions.reduce((acc: Record<string, any[]>, sol: any) => {
       const cId = sol.clusterId;
@@ -630,6 +648,9 @@ async function joinMongoDataToClusters(clusters: any[]): Promise<any[]> {
         if (!acc[cId]) {
           acc[cId] = [];
         }
+        
+        const builderPerks = buildersById[sol.builderId] || { customBio: '', githubUrl: '', websiteUrl: '' };
+
         acc[cId].push({
           id: sol.id,
           name: sol.name,
@@ -637,6 +658,9 @@ async function joinMongoDataToClusters(clusters: any[]): Promise<any[]> {
           description: sol.description,
           builderId: sol.builderId,
           builderName: sol.builderName,
+          builderBio: builderPerks.customBio,      // 🚀 Inject customized bio!
+          builderGithub: builderPerks.githubUrl,  // 🚀 Inject custom GitHub link!
+          builderWebsite: builderPerks.websiteUrl, // 🚀 Inject custom portfolio!
           upvotes: Number(sol.upvotes || 0),
           votesUserIds: Array.isArray(sol.votesUserIds) ? sol.votesUserIds : [],
           downvotedUserIds: Array.isArray(sol.downvotedUserIds) ? sol.downvotedUserIds : [],
@@ -649,6 +673,8 @@ async function joinMongoDataToClusters(clusters: any[]): Promise<any[]> {
 
     for (const cluster of clusters) {
       cluster.solutions = solutionsByCluster[cluster.id] || [];
+      // Hydrate pre-calculated variantCount dynamically if missing from old records
+      cluster.variantCount = typeof cluster.variantCount === 'number' ? cluster.variantCount : (cluster.sampleVariants?.length || 0);
       // Clean up raw MongoDB Object IDs to prevent UI serialisation errors
       delete cluster._id;
     }
@@ -659,4 +685,63 @@ async function joinMongoDataToClusters(clusters: any[]): Promise<any[]> {
     }
   }
   return clusters;
+}
+
+// =========================================================================
+// 👤 USER PROFILES & ROLE-PERKS OPERATIONS
+// =========================================================================
+
+/**
+ * Upsert or update a user document.
+ * Handles initial registration and profile updates for builders/founders.
+ */
+export async function upsertUser(user: MongoUserDocument): Promise<void> {
+  try {
+    const db = await getDb();
+    const userDoc = { ...user };
+    delete (userDoc as any)._id; // Clean primary ID
+
+    await db.collection('users').updateOne(
+      { userId: user.userId },
+      { $set: userDoc },
+      { upsert: true }
+    );
+    console.log(`[MongoDB] User profile upserted successfully: ${user.userId}`);
+  } catch (error) {
+    console.error(`[MongoDB] upsertUser failed for ${user.userId}:`, error);
+  }
+}
+
+/**
+ * Fetch a user document from the users collection by their Clerk User ID.
+ */
+export async function getUserByClerkId(userId: string): Promise<MongoUserDocument | null> {
+  try {
+    const db = await getDb();
+    const user = await db.collection('users').findOne({ userId });
+    if (!user) return null;
+    
+    delete (user as any)._id; // Un-nest mongo primary key
+    return user as any;
+  } catch (error) {
+    console.error(`[MongoDB] getUserByClerkId failed for ${userId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Automatic Promotion Loop: Elevates a user from 'reporter' to 'builder'
+ * the exact millisecond they submit their first verified product solution.
+ */
+export async function promoteUserToBuilder(userId: string): Promise<void> {
+  try {
+    const db = await getDb();
+    await db.collection('users').updateOne(
+      { userId, role: 'reporter' },
+      { $set: { role: 'builder' } }
+    );
+    console.log(`[MongoDB] User promoted to Builder: ${userId}`);
+  } catch (error) {
+    console.error(`[MongoDB] promoteUserToBuilder failed for ${userId}:`, error);
+  }
 }

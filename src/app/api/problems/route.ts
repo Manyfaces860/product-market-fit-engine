@@ -159,12 +159,13 @@ export async function POST(req: NextRequest) {
         userIds: userAlreadyJoined ? existingUserIds : [...existingUserIds, userId],
       };
 
-      // Create raw problem record in Pinecone
+      // Create raw problem record in MongoDB 🚀
       const problemRecord: ProblemRecord = {
         id: problemId,
         rawText: text,
         category: matchedCluster.category,
         clusterId: matchedCluster.id,
+        userId, // 🚀 Relate this problem directly to the submitter's account!
         createdAt: nowStr,
       };
       await insertProblem(problemRecord, queryEmbedding);
@@ -220,12 +221,13 @@ export async function POST(req: NextRequest) {
         userIds: [userId],
       };
 
-      // Save raw problem
+      // Save raw problem in MongoDB 🚀
       const problemRecord: ProblemRecord = {
         id: problemId,
         rawText: text,
         category: finalCategory,
         clusterId,
+        userId, // 🚀 Relate this problem directly to the submitter's account!
         createdAt: nowStr,
       };
       await insertProblem(problemRecord, queryEmbedding);
