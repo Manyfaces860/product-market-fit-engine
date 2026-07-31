@@ -16,6 +16,7 @@ export interface MongoClusterDocument {
   variantCount?: number;       // 🚀 Total phrasing variants count (for ultra-fast lists without loading arrays!)
   sampleVariants: string[];    // Uncapped array of crowdsourced phrasing variants
   userIds?: string[];          // Clerk User IDs of co-sign supports (idempotency)
+  creatorId?: string;          // 🚀 Clerk User ID of the original reporter who created/seeded the cluster
   createdAt: string;           // Timestamp
   lastUpdatedAt: string;       // Timestamp
   

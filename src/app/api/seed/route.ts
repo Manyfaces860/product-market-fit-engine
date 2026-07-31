@@ -170,6 +170,7 @@ export async function GET(req: NextRequest) {
         memberCount: item.memberCount,
         sampleVariants: item.sampleVariants,
         userIds: [],
+        creatorId: 'user_seed_reporter_999',
         createdAt: nowStr,
         lastUpdatedAt: nowStr,
       };

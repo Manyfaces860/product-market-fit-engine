@@ -272,7 +272,7 @@ export default function Home() {
     <div className="flex-grow flex flex-col items-center justify-start py-12 px-4 sm:px-6 lg:px-8">
       
       {/* Seed Helper for empty DBs */}
-      {/* {(
+      {(
         <div className="mb-8 w-full max-w-xl p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-between gap-4">
           <div className="flex gap-2">
             <Database className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
@@ -291,7 +291,7 @@ export default function Home() {
               : APP_COPY.home.seedButtonText}
           </button>
         </div>
-      )} */}
+      )}
 
       {/* Main Submission Form Section */}
       <div className="w-full max-w-4xl text-center mt-6 mb-16 relative">

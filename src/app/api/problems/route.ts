@@ -195,23 +195,26 @@ export async function POST(req: NextRequest) {
         categoryLabel: finalCategoryLabel,
         categoryDescription: finalCategoryDescription,
         canonicalText: finalCanonicalText,
-        memberCount: 0, // Ignored by Pinecone now
-        sampleVariants: [], // Ignored by Pinecone now
+        memberCount: 1,
+        sampleVariants: [],
         createdAt: nowStr,
+        creatorId: userId,
+        variantCount: 1,
         lastUpdatedAt: nowStr,
       };
       await upsertCluster(newClusterForPinecone, canonicalEmbedding);
 
       // 3. Insert dynamic state into MongoDB 🚀
-      const db = await getDb();
-      await db.collection('clusters').insertOne({
-        id: clusterId,
-        memberCount: 1,
-        sampleVariants: [text],
-        userIds: [userId],
-        createdAt: nowStr,
-        lastUpdatedAt: nowStr,
-      });
+      // const db = await getDb();
+      // await db.collection('clusters').insertOne({
+      //   id: clusterId,
+      //   memberCount: 1,
+      //   sampleVariants: [text],
+      //   userIds: [userId],
+      //   creatorId: userId,
+      //   createdAt: nowStr,
+      //   lastUpdatedAt: nowStr,
+      // });
 
       // Assemble unified cluster representation for the client
       const unifiedCluster: ClusterRecord = {
@@ -219,6 +222,7 @@ export async function POST(req: NextRequest) {
         memberCount: 1,
         sampleVariants: [text],
         userIds: [userId],
+        creatorId: userId,
       };
 
       // Save raw problem in MongoDB 🚀

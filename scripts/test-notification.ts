@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 import { sendDirectTestEmail } from '../src/lib/resend';
 
 async function run() {
-  const targetEmail = 'mynewdbdatabase@gmail.com';
+  const targetEmail = 'manyfaces860@gmail.com';
   
   console.log('----------------------------------------------------');
   console.log('🚀 P-X1 LIVE EMAIL NOTIFICATION INTEGRATION TEST');

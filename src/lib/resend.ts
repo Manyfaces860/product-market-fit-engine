@@ -263,9 +263,9 @@ export async function blastLaunchNotification(
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'P-X1 Discovery Loop <onboarding@resend.dev>', // Resend Sandbox Sender
+            from: 'Needboard Discovery Loop <launch@mail.needboard.space>', // 🚀 Your free subdomain sender!
             to: [target.email],
-            subject: `[P-X1] A solution has launched for: "${clusterText.substring(0, 35)}..."`,
+            subject: `[Needboard] A solution has launched for: "${clusterText.substring(0, 35)}..."`,
             html: htmlContent,
           }),
         });
@@ -303,7 +303,7 @@ export async function sendDirectTestEmail(toEmail: string) {
     'cluster_seed_software-devtools'
   );
 
-  console.log(`[Test] Dispatched direct P-X1 styled alert to: ${toEmail}...`);
+  console.log(`[Test] Dispatched direct Needboard styled alert to: ${toEmail}...`);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -311,9 +311,9 @@ export async function sendDirectTestEmail(toEmail: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'P-X1 Discovery Loop <onboarding@resend.dev>', // Free Sandbox email
+      from: 'Needboard Discovery Loop <launch@mail.needboard.space>', // 🚀 Your custom subdomain sender!
       to: [toEmail],
-      subject: `[P-X1 Test] A solution has launched for your pain point!`,
+      subject: `[Needboard Test] A solution has launched for your pain point!`,
       html: htmlContent,
     }),
   });
