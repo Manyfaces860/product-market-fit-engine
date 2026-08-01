@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getClusters } from '@/lib/pinecone';
+import { getClusters } from '@/lib/mongodb';
 import { createResponse } from '@/lib/response';
 
 export async function GET(req: NextRequest) {

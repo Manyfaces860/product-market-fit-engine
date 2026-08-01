@@ -9,6 +9,7 @@ import { APP_COPY } from '@/lib/config/copy';
 import { PageScanner, ButtonSpinner } from '@/components/Loader';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import AlertModal from '@/components/AlertModal';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Solution {
   id: string;
@@ -19,6 +20,7 @@ interface Solution {
   builderName: string;
   upvotes: number;
   votesUserIds: string[];
+  downvotedUserIds?: string[];
   createdAt: string;
   iconUrl?: string;
 }
@@ -56,6 +58,8 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const voted = !!(userId && cluster?.userIds?.includes(userId));
 
   const sanitizeError = (error: any, defaultMessage: string): string => {
     const msg = error?.message || '';
@@ -95,7 +99,6 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
   const [submitting, setSubmitting] = useState(false);
   const [customPhrasing, setCustomPhrasing] = useState('');
   const [showPhrasingInput, setShowPhrasingInput] = useState(false);
-  const [voted, setVoted] = useState(false);
   const [meTooError, setMeTooError] = useState<string | null>(null);
 
   // Custom Alert Modal states
@@ -104,6 +107,12 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     type: 'success' as 'success' | 'error' | 'info',
     title: '',
     message: ''
+  });
+
+  // Custom Confirm Modal states (Yes/Cancel) 🚀
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    solutionId: '',
   });
 
   useEffect(() => {
@@ -125,15 +134,6 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     }
     loadDetails();
   }, [id, refreshTrigger]);
-
-  useEffect(() => {
-    if (cluster && userId) {
-      const userIds = (cluster as any).userIds || [];
-      if (userIds.includes(userId)) {
-        setVoted(true);
-      }
-    }
-  }, [cluster, userId]);
 
   // Solution workflow states
   const [showSolutionForm, setShowSolutionForm] = useState(false);
@@ -204,9 +204,17 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
-  const handleSolutionDelete = async (solutionId: string) => {
-    if (!confirm('Are you sure you want to permanently delete your listed solution?')) return;
-    
+  const triggerSolutionDelete = (solutionId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      solutionId,
+    });
+  };
+
+  const executeSolutionDelete = async () => {
+    const solutionId = confirmModal.solutionId;
+    if (!solutionId) return;
+
     const nextDeleting = new Set(deletingIds);
     nextDeleting.add(solutionId);
     setDeletingIds(nextDeleting);
@@ -255,13 +263,13 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     setShowSolutionForm(true);
   };
 
-  const handleSolutionUpvote = async (solutionId: string) => {
+  const handleSolutionVote = async (solutionId: string, voteType: 'up' | 'down') => {
     if (!userId) {
       setAlertModal({
         isOpen: true,
         type: 'info',
         title: 'Authentication Required',
-        message: 'You must be signed in to upvote listed product solutions!'
+        message: 'You must be signed in to rate listed product solutions!'
       });
       return;
     }
@@ -276,11 +284,13 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     try {
       const res = await fetchWithRetry(`/api/clusters/${id}/solutions/${solutionId}/upvote`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voteType })
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to upvote solution.');
+        throw new Error(data.message || 'Failed to submit vote.');
       }
 
       setCluster(data.cluster);
@@ -289,8 +299,8 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       setAlertModal({
         isOpen: true,
         type: 'error',
-        title: 'Upvote Failed',
-        message: sanitizeError(err, 'Failed to record your upvote.')
+        title: 'Vote Failed',
+        message: sanitizeError(err, 'Failed to record your vote.')
       });
     } finally {
       const finishedUpvoting = new Set(upvotingIds);
@@ -402,7 +412,6 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       }
 
       setCluster(data.cluster);
-      setVoted(true);
       setCustomPhrasing('');
       setShowPhrasingInput(false);
     } catch (err: any) {
@@ -479,7 +488,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-display font-bold text-slate-100 italic leading-relaxed pr-6">
-              "{cluster.canonicalText}"
+              &quot;{cluster.canonicalText}&quot;
             </h1>
 
             {/* Variants lists */}
@@ -496,7 +505,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
                   >
-                    • "{variant}"
+                    • &quot;{variant}&quot;
                   </motion.li>
                 ))}
               </ul>
@@ -540,7 +549,8 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                 {[...cluster.solutions]
                   .sort((a, b) => b.upvotes - a.upvotes)
                   .map((sol) => {
-                    const hasVoted = userId && sol.votesUserIds?.includes(userId);
+                    const hasUpvoted = userId && sol.votesUserIds?.includes(userId);
+                    const hasDownvoted = userId && sol.downvotedUserIds?.includes(userId);
                     const isUpvoting = upvotingIds.has(sol.id);
                     const isExpanded = expandedSolutionId === sol.id;
 
@@ -553,25 +563,47 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                       >
                         {/* Top Solution Info Row */}
                         <div className="flex flex-row items-start gap-6">
-                          {/* Vote Button Column */}
-                          <button
-                            onClick={() => handleSolutionUpvote(sol.id)}
-                            disabled={!!hasVoted || isUpvoting}
-                            className={`flex flex-col items-center justify-center w-12 py-3 rounded-xl border font-mono text-xs shrink-0 transition-all cursor-pointer ${
-                              hasVoted
-                                ? 'bg-teal-500/20 text-teal-400 border-teal-500/35 cursor-default'
-                                : 'bg-slate-950/40 text-slate-400 border-white/5 hover:bg-slate-950/80 hover:text-slate-200'
-                            }`}
-                          >
-                            {isUpvoting ? (
-                              <ButtonSpinner size="xs" />
-                            ) : (
-                              <>
-                                <ArrowUp className={`h-4 w-4 mb-1 ${hasVoted ? 'text-teal-400' : 'text-slate-500'}`} />
-                                <span>{sol.upvotes}</span>
-                              </>
-                            )}
-                          </button>
+                          {/* Vote Stack Column (Reddit / StackOverflow style) 🚀 */}
+                          <div className="flex flex-col items-center gap-1.5 shrink-0 select-none">
+                            {/* Upvote Arrow */}
+                            <button
+                              onClick={() => handleSolutionVote(sol.id, 'up')}
+                              disabled={isUpvoting}
+                              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all cursor-pointer ${
+                                hasUpvoted
+                                  ? 'bg-amber-500/20 text-brand-amber border-brand-amber/35'
+                                  : 'bg-slate-950/40 text-slate-500 border-white/5 hover:bg-slate-950/80 hover:text-slate-200 animate-pulse-subtle'
+                              }`}
+                              title={hasUpvoted ? "Remove Upvote" : "Upvote"}
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </button>
+
+                            {/* Score Display / Spinner */}
+                            <span className={`font-mono text-[11px] font-bold w-8 text-center transition-colors ${
+                              hasUpvoted ? 'text-brand-amber' : hasDownvoted ? 'text-rose-500' : 'text-slate-400'
+                            }`}>
+                              {isUpvoting ? (
+                                <div className="flex justify-center"><ButtonSpinner size="xs" /></div>
+                              ) : (
+                                (sol.upvotes || 0) > 0 ? `+${sol.upvotes}` : sol.upvotes
+                              )}
+                            </span>
+
+                            {/* Downvote Arrow (Flipped ArrowUp) */}
+                            <button
+                              onClick={() => handleSolutionVote(sol.id, 'down')}
+                              disabled={isUpvoting}
+                              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all cursor-pointer ${
+                                hasDownvoted
+                                  ? 'bg-rose-500/20 text-rose-500 border-rose-500/35'
+                                  : 'bg-slate-950/40 text-slate-500 border-white/5 hover:bg-slate-950/80 hover:text-slate-200 animate-pulse-subtle'
+                              }`}
+                              title={hasDownvoted ? "Remove Downvote" : "Downvote"}
+                            >
+                              <ArrowUp className="h-4 w-4 rotate-180" />
+                            </button>
+                          </div>
 
                           {/* Product Content Column */}
                           <div className="flex-grow space-y-2">
@@ -602,7 +634,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                                         <Pencil className="h-3.5 w-3.5" />
                                       </button>
                                       <button
-                                        onClick={() => handleSolutionDelete(sol.id)}
+                                        onClick={() => triggerSolutionDelete(sol.id)}
                                         disabled={deletingIds.has(sol.id)}
                                         className="p-1.5 rounded-lg bg-white/5 border border-white/5 hover:border-red-500/35 hover:bg-red-500/10 text-slate-400 hover:text-red-400 cursor-pointer transition-all"
                                         title="Delete Listing"
@@ -864,7 +896,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                       <span>Signal: {adj.memberCount}</span>
                     </div>
                     <p className="text-slate-300 text-xs italic font-medium line-clamp-2">
-                      "{adj.canonicalText}"
+                      &quot;{adj.canonicalText}&quot;
                     </p>
                   </Link>
                 ))}
@@ -1200,6 +1232,18 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
         title={alertModal.title}
         message={alertModal.message}
         onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Custom Operations Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        type="warning"
+        title="Delete Listed Product?"
+        message="Are you sure you want to permanently delete your listed solution? This action is irreversible and will remove all associated reviews."
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        onConfirm={executeSolutionDelete}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
       />
 
     </div>

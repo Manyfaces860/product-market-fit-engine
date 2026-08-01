@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 
 interface LoaderProps {
   message?: string;
@@ -27,20 +29,51 @@ export function ButtonSpinner({ size = 'sm' }: { size?: 'xs' | 'sm' | 'md' }) {
 
 /**
  * A stunning, futuristic, full-section or full-page radar scanner loader.
- * Perfect for matching vector spaces, compile statuses, or data queries.
+ * Perfect for matching vector spaces, compile statuses, or database queries.
+ * Features a multi-stage personalized loading timeline (0s -> 1.5s -> 3s)
+ * with direct browser reload suggestions.
  */
 export function PageScanner({ message = 'Analyzing...', size = 'md' }: LoaderProps) {
+  const { user } = useUser();
+  const userName = user ? `${user.firstName || ''}`.trim() : 'Builder';
+  const [displayMessage, setDisplayMessage] = useState(message);
+
+  useEffect(() => {
+    setDisplayMessage(message); // Sync with prop changes
+
+    // ⏳ Stage 2 (after 1.5s): Reassure the user we are still actively working
+    const timer1 = setTimeout(() => {
+      setDisplayMessage('trying our best to get you data...');
+    }, 3000);
+
+    // ⏳ Stage 3 (after 3.0s): Suggest a browser reload and personalize with their name!
+    const timer2 = setTimeout(() => {
+      setDisplayMessage(`you might have to re load the page, our server is stuck, perform a quick reload ${userName}`);
+    }, 6000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [message, userName]);
+
   const scaleClass = {
     sm: 'w-6 h-6',
     md: 'w-10 h-10',
     lg: 'w-16 h-16',
   }[size];
 
+  // If size is 'sm' (used inline), use tighter padding. 
+  // Otherwise, use 'min-h-[60vh]' to ensure perfect vertical and horizontal page centering on viewports! 🚀
+  const containerClass = size === 'sm' 
+    ? 'flex flex-col items-center justify-center py-6 px-4 w-full relative'
+    : 'flex flex-col items-center justify-center min-h-[60vh] py-16 px-4 w-full relative';
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 w-full relative">
+    <div className={containerClass}>
       <div className={`relative ${scaleClass} flex items-center justify-center`}>
         
-        {/* Modern, high-contrast semantic pulsing ring radiating outwards */}
+        {/* Modern, high-contrast pulsing ring radiating outwards */}
         <motion.div
           className="absolute inset-0 rounded-full border border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
           initial={{ scale: 0.8, opacity: 0.8 }}
@@ -81,9 +114,9 @@ export function PageScanner({ message = 'Analyzing...', size = 'md' }: LoaderPro
       </div>
 
       {/* Modern, clean monospace text below */}
-      {message && (
-        <p className="mt-8 font-mono text-[9px] tracking-[0.2em] text-slate-400 font-bold uppercase text-center animate-pulse">
-          {message}
+      {displayMessage && (
+        <p className="mt-8 font-mono text-[9px] tracking-[0.2em] text-slate-400 font-bold uppercase text-center animate-pulse max-w-md leading-relaxed">
+          {displayMessage}
         </p>
       )}
     </div>

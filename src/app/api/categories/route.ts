@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCategories } from '@/lib/pinecone';
+import { getCategories } from '@/lib/mongodb';
 
 export async function GET(req: NextRequest) {
   try {

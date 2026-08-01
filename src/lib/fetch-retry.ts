@@ -19,12 +19,12 @@ export interface FetchRetryOptions extends RequestInit {
 export async function fetchWithRetry(
   url: string,
   options: FetchRetryOptions = {},
-  timeout: number = 60000
+  timeout: number = 10000
 ): Promise<Response> {
   // Auto-escalate the default timeout for heavy batch actions like seeding or admin stats
   let defaultTimeout = timeout;
   if (url.includes('/api/seed') || url.includes('/api/admin/stats')) {
-    defaultTimeout = 100000; // 🚀 20 seconds comfortable breathing room
+    defaultTimeout = 60000; // 🚀 60 seconds comfortable breathing room
   }
 
   const {

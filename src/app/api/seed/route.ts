@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { embeddingService } from '@/lib/ai';
-import { upsertCluster, insertProblem, ClusterRecord, ProblemRecord, wipePineconeIndex } from '@/lib/pinecone';
-import { getDb } from '@/lib/mongodb';
+import { upsertCluster, insertProblem, wipePineconeIndex, getDb } from '@/lib/mongodb';
+import { MongoClusterDocument as ClusterRecord, MongoProblemDocument as ProblemRecord } from '@/lib/models/schema';
 
 // Pre-defined builder-focused sample clusters with realistic, actionable developer/founder pain points
 const SEED_CLUSTERS = [
@@ -158,31 +158,24 @@ export async function GET(req: NextRequest) {
       const clusterId = `cluster_seed_${item.category}`;
       const clusterEmbedding = canonicalEmbeddings[cIdx];
       
-      // Upsert cluster to Pinecone with pre-generated embedding (now only sending static taxonomy!)
+      // 🚀 Assemble the complete, unified Cluster Document (Static Taxonomy + Dynamic metrics + Vectors!)
       const record: ClusterRecord = {
         id: clusterId,
         category: item.category,
         categoryLabel: item.categoryLabel,
         categoryDescription: item.categoryDescription,
         canonicalText: item.canonicalText,
-        memberCount: 0, // Ignored by new Pinecone schema
-        sampleVariants: [], // Ignored by new Pinecone schema
-        createdAt: nowStr,
-        lastUpdatedAt: nowStr,
-      };
-      await upsertCluster(record, clusterEmbedding);
-
-      // Insert dynamic cluster data into MongoDB 🚀
-      await db.collection('clusters').insertOne({
-        id: clusterId,
         memberCount: item.memberCount,
         sampleVariants: item.sampleVariants,
         userIds: [],
         createdAt: nowStr,
         lastUpdatedAt: nowStr,
-      });
+      };
       
-      // Seed each sample variant as an individual Problem Record in Pinecone!
+      // Writes the complete, rich document (including the HNSW vector embedding!) to MongoDB 🚀
+      await upsertCluster(record, clusterEmbedding);
+      
+      // Seed each sample variant as an individual Problem Record in MongoDB!
       let variantIdx = 1;
       for (const variantText of item.sampleVariants) {
         const problemId = `prob_seed_${item.category}_${variantIdx++}`;

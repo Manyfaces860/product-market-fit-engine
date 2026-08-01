@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getClusterById, getAdjacentClusters } from '@/lib/pinecone';
 import { auth } from '@clerk/nextjs/server';
-import { logMetric, getDb } from '@/lib/mongodb';
+import { logMetric, getDb, getClusterById, getAdjacentClusters } from '@/lib/mongodb';
 import { createResponse } from '@/lib/response';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

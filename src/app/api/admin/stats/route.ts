@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { getDb } from '@/lib/mongodb';
-import { getClusters } from '@/lib/pinecone';
+import { getDb, getClusters } from '@/lib/mongodb';
 
 /**
  * GET /api/admin/stats

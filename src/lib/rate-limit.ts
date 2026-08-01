@@ -162,7 +162,7 @@ export async function rateLimit(identifier: string): Promise<{
   }
 
   // 2. Check Daily Limit
-  const dayLimit = Number(process.env.RATE_LIMIT_DAILY_MAX_REQUESTS || 10);
+  const dayLimit = Number(process.env.RATE_LIMIT_DAILY_MAX_REQUESTS || 50);
   const dayWindowMs = 24 * 60 * 60 * 1000; // 24 hours
   
   const dayResult = await checkWindow(identifier, 'day', dayLimit, dayWindowMs);

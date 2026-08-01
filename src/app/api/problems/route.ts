@@ -3,16 +3,19 @@ import { auth } from '@clerk/nextjs/server';
 import { validateQuery } from '@/lib/validation';
 import { rateLimit, handleRateLimitResponse } from '@/lib/rate-limit';
 import { embeddingService, llmService } from '@/lib/ai';
-import { logMetric, getDb } from '@/lib/mongodb';
 import { 
   getClusters, 
   getCategories, 
   searchClusters, 
   upsertCluster, 
-  insertProblem, 
-  ClusterRecord, 
-  ProblemRecord 
-} from '@/lib/pinecone';
+  insertProblem,
+  logMetric,
+  getDb
+} from '@/lib/mongodb';
+import { 
+  MongoClusterDocument as ClusterRecord, 
+  MongoProblemDocument as ProblemRecord 
+} from '@/lib/models/schema';
 
 const SIMILARITY_THRESHOLD = Number(process.env.NEXT_PUBLIC_SIMILARITY_THRESHOLD || 0.40);
 

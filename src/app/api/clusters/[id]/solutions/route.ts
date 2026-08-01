@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { getClusterById } from '@/lib/pinecone';
-import { getDb } from '@/lib/mongodb';
-import { Solution } from '@/lib/pinecone';
+import { getClusterById, getDb } from '@/lib/mongodb';
+import { MongoSolutionDocument as Solution } from '@/lib/models/schema';
 import { blastLaunchNotification } from '@/lib/resend';
 
 /**
@@ -32,8 +31,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!name || name.trim() === '') {
       return NextResponse.json({ error: 'Validation Error', message: 'Product name is required.' }, { status: 400 });
     }
-    if (!url || url.trim() === '') {
+    const trimmedUrl = url ? url.trim() : '';
+    if (!url || trimmedUrl === '') {
       return NextResponse.json({ error: 'Validation Error', message: 'Product URL is required.' }, { status: 400 });
+    }
+    // Security protocol validation to block malicious XSS links (javascript:alert etc.) 🛡️
+    const isSafeUrl = trimmedUrl.toLowerCase().startsWith('http://') || trimmedUrl.toLowerCase().startsWith('https://');
+    if (!isSafeUrl) {
+      return NextResponse.json(
+        { error: 'Validation Error', message: 'Product URL must use a safe web protocol (http:// or https://).' },
+        { status: 400 }
+      );
     }
     if (!description || description.trim() === '') {
       return NextResponse.json({ error: 'Validation Error', message: 'Description of how it solves the problem is required.' }, { status: 400 });
@@ -53,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // CHECK IDEMPOTENCY KEY: If solution with this client-generated ID already exists, short-circuit immediately
     // Prevents double-submissions, duplicate writes, and double email blasts during network retries.
     if (solutionId) {
-      const alreadyProcessed = existingSolutions.find(s => s.id === solutionId);
+      const alreadyProcessed = existingSolutions.find((s: any) => s.id === solutionId);
       if (alreadyProcessed) {
         console.log(`[Idempotency] Duplicate request caught for solutionId: ${solutionId}. Silently returning success.`);
         return NextResponse.json({
@@ -65,7 +73,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // 4. Enforce One-Solution-Per-User Constraint
-    const userHasSolution = existingSolutions.some(s => s.builderId === userId);
+    const userHasSolution = existingSolutions.some((s: any) => s.builderId === userId);
     if (userHasSolution) {
       return NextResponse.json(
         { error: 'Conflict', message: 'You have already listed a solution for this problem! You can edit or delete your existing listing instead.' },
@@ -75,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // 5. Check if the product URL is already listed to prevent duplicate links
     const normalizedUrl = url.trim().toLowerCase().replace(/\/$/, '');
-    const isDuplicate = existingSolutions.some(s => s.url.trim().toLowerCase().replace(/\/$/, '') === normalizedUrl);
+    const isDuplicate = existingSolutions.some((s: any) => s.url.trim().toLowerCase().replace(/\/$/, '') === normalizedUrl);
     if (isDuplicate) {
       return NextResponse.json(
         { error: 'Conflict', message: 'This product link is already listed as a solution for this problem!' },

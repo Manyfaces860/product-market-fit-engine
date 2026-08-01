@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { getProblemById, getClusterById, insertProblem } from '@/lib/pinecone';
-import { getDb } from '@/lib/mongodb';
+import { getProblemById, getClusterById, insertProblem, getDb } from '@/lib/mongodb';
 
 /**
  * POST /api/admin/reassign
