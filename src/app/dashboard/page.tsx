@@ -28,11 +28,11 @@ import { PageScanner } from '@/components/Loader';
 import AlertModal from '@/components/AlertModal';
 
 // Custom inline SVG Github Icon to prevent version mismatches in Lucide React 🚀
-const Github = (props: React.SVGProps<SVGSVGElement>) => (
+const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg 
     viewBox="0 0 24 24" 
-    width="16" 
-    height="16" 
+    width="20" 
+    height="20" 
     stroke="currentColor" 
     strokeWidth="2" 
     fill="none" 
@@ -154,9 +154,9 @@ export default function UserDashboard() {
           setTotalUpvotes(data.builder.totalUpvotesScore || 0);
 
           // Pre-populate profile editor fields
-          setBioInput(data.profile.customBio || '');
-          setGithubInput(data.profile.githubUrl || '');
-          setWebsiteInput(data.profile.websiteUrl || '');
+          setBioInput('');
+          setGithubInput('');
+          setWebsiteInput('');
 
           // If they are builders or admins, default their dashboard focus to their Builder Console!
           if (data.profile.role === 'builder' || data.profile.role === 'admin') {
@@ -196,9 +196,9 @@ export default function UserDashboard() {
       if (res.ok) {
         setProfile(prev => prev ? {
           ...prev,
-          customBio: data.updatedFields.customBio,
-          githubUrl: data.updatedFields.githubUrl,
-          websiteUrl: data.updatedFields.websiteUrl
+          customBio: data.updatedFields.customBio ? data.updatedFields.customBio : profile.customBio,
+          githubUrl: data.updatedFields.githubUrl ? data.updatedFields.githubUrl : profile.githubUrl,
+          websiteUrl: data.updatedFields.websiteUrl ? data.updatedFields.websiteUrl : profile.websiteUrl,
         } : null);
 
         setAlertModal({
@@ -284,7 +284,7 @@ export default function UserDashboard() {
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl font-bold font-sans text-slate-100 flex flex-wrap items-center gap-3 justify-center sm:justify-start">
+            <h1 className="text-xl sm:text-2xl font-bold font-sans capitalize text-slate-100 flex flex-wrap items-center gap-3 justify-center sm:justify-start">
               {profile.name}
               
               {/* Dynamic Badges */}
@@ -296,6 +296,35 @@ export default function UserDashboard() {
             <p className="text-xs text-slate-400 font-mono tracking-wide">
               Registered Account: <span className="text-slate-300">{new Date(profile.createdAt).toLocaleDateString()}</span>
             </p>
+            <span className="text-[12px] font-mono text-slate-500 uppercase tracking-widest block flex flex-wrap items-center gap-x-2 gap-y-1 justify-center sm:justify-start">
+              {profile.customBio && (
+                <span className="text-slate-400 italic normal-case font-sans">
+                  ({profile.customBio})
+                </span>
+              )}
+              {profile.githubUrl && (
+                <a 
+                  href={profile.githubUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-slate-500 hover:text-slate-300 p-0.5 transition-colors"
+                  title="Builder GitHub Profile"
+                >
+                  <GithubIcon className="h-3 w-3 inline -mt-0.5" />
+                </a>
+              )}
+              {profile.websiteUrl && (
+                <a 
+                  href={profile.websiteUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-slate-500 hover:text-slate-300 p-0.5 transition-colors"
+                  title="Builder Personal Website"
+                >
+                  <Globe className="h-3 w-3 inline -mt-0.5" />
+                </a>
+              )}
+            </span>
           </div>
         </div>
 
@@ -424,7 +453,7 @@ export default function UserDashboard() {
               {/* GitHub Field */}
               <div className="space-y-1">
                 <label className="font-mono text-[9px] text-slate-400 tracking-wider block uppercase font-bold flex items-center gap-1">
-                  <Github className="h-3 w-3" /> GitHub URL
+                  <GithubIcon className="h-3 w-3" /> GitHub URL
                 </label>
                 <input
                   type="text"

@@ -71,10 +71,10 @@ export const ROLE_PERKS_CONFIG: Record<string, RolePerks> = {
     customLinksEnabled: true,
     launchNotificationsQuota: 9999,
     perksHighlights: [
-      "👑 Access the Executive System Operations dashboard",
-      "🔧 Curation & Reassignment tools to clean and manage active problem centroids",
-      "📊 Volume costs and analytics charts tracker",
-      "🛠️ Full read/write capability to maintain database cleanliness"
+      "Access the Executive System Operations dashboard",
+      "Curation & Reassignment tools to clean and manage active problem centroids",
+      "Volume costs and analytics charts tracker",
+      "Full read/write capability to maintain database cleanliness"
     ]
   }
 };

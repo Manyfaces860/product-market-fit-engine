@@ -1,6 +1,6 @@
 # P-X1 — Collective Problem Clustering Platform (Prototype)
 
-P-X1 is an interactive, vector-driven web application where anyone can post a problem, complaint, or frustration about literally anything. Using advanced vector search (Pinecone) and LLM classification (Anthropic, OpenAI, Vertex AI, and other customizable endpoints), the system automatically categorizes each submission and clusters similar underlying frustrations into collective signals.
+NeedBoard is an interactive, vector-driven web application where anyone can post a problem, complaint, or frustration about literally anything. Using advanced vector search (Pinecone) and LLM classification (Anthropic, OpenAI, Vertex AI, and other customizable endpoints), the system automatically categorizes each submission and clusters similar underlying frustrations into collective signals.
 
 ## 🌟 Core Features
 
@@ -40,7 +40,7 @@ Protects the heavy AI calculation routes from misuse and spam.
 - `CLERK_SECRET_KEY`: Clerk private secret key.
 - `NEXT_PUBLIC_CLERK_SIGN_IN_URL`: Set this to your absolute Clerk Accounts Portal sign-in subpage (e.g., `https://current-ferret-93.accounts.dev/sign-in`).
 - `NEXT_PUBLIC_CLERK_SIGN_UP_URL`: Set this to your absolute Clerk Accounts Portal sign-up subpage (e.g., `https://current-ferret-93.accounts.dev/sign-up`).
-  - *Crucial note:* Because P-X1 uses Clerk's native modal and hosted portals, setting these to absolute hosted URLs ensures Clerk's middleware redirects unauthenticated API queries directly to your hosted portal instead of local subpaths (which would return 404).
+  - *Crucial note:* Because NeedBoard uses Clerk's native modal and hosted portals, setting these to absolute hosted URLs ensures Clerk's middleware redirects unauthenticated API queries directly to your hosted portal instead of local subpaths (which would return 404).
 
 #### C. Control Thresholds & Safety
 - `NEXT_PUBLIC_SIMILARITY_THRESHOLD`: Cosine similarity cutoff (defaults to `0.85`). Increase to keep clusters tightly related; decrease to merge broader wording together.
@@ -125,6 +125,14 @@ Set:
 EMBEDDING_PROVIDER=local-fallback
 ```
 This maps input queries into deterministic, high-dimensional normalized vector fields (1536d) dynamically, letting you fully test clustering, similarity matching, and browse directories locally.
+
+### 8. Resend (Email Notifications)
+Enables automatic email alerts when builders list verified solutions to subscribed problem clusters.
+Set:
+```env
+RESEND_API_KEY=your-resend-api-key
+```
+By default, the platform routes live notifications using our custom domain sender (`launch@mail.needboard.space`).
 
 ---
 

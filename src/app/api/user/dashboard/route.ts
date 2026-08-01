@@ -184,13 +184,13 @@ export async function PATCH(req: NextRequest) {
     };
 
     const updateFields: any = {};
-    if (typeof customBio === 'string') {
+    if (customBio && typeof customBio === 'string') {
       updateFields.customBio = customBio.trim().substring(0, 160); // Cap bio at 160 chars
     }
-    if (typeof githubUrl === 'string') {
+    if (githubUrl && typeof githubUrl === 'string') {
       updateFields.githubUrl = sanitizeLink(githubUrl);
     }
-    if (typeof websiteUrl === 'string') {
+    if (websiteUrl && typeof websiteUrl === 'string') {
       updateFields.websiteUrl = sanitizeLink(websiteUrl);
     }
 

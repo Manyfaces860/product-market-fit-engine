@@ -10,7 +10,8 @@ import {
   upsertCluster, 
   insertProblem,
   logMetric,
-  getDb
+  getDb,
+  searchClustersForSubmit
 } from '@/lib/mongodb';
 import { 
   MongoClusterDocument as ClusterRecord, 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     const queryEmbedding = await embeddingService.getEmbedding(text);
 
     // 5. Search for nearest existing clusters
-    const matches = await searchClusters(queryEmbedding, 1);
+    const matches = await searchClustersForSubmit(queryEmbedding, 1);
     const topMatch = matches[0];
     const isMatch = topMatch && topMatch.score !== undefined && topMatch.score >= SIMILARITY_THRESHOLD;
 
@@ -106,51 +107,38 @@ export async function POST(req: NextRequest) {
       // Apply fast, atomic updates to MongoDB (Uncapped variants, 0 embedding cost! 🚀)
       const existingUserIds = matchedCluster.userIds || [];
       const userAlreadyJoined = existingUserIds.includes(userId);
-      
+      const isCreator = matchedCluster.creatorId == userId;
+
+      if (isCreator) {
+        throw new Error('You are already the creator of this Complaint', {cause: 'AlreadySubmit'});
+      }
+    
       const db = await getDb();
-      const mongoCluster = await db.collection('clusters').findOne({ id: matchedCluster.id });
+      // const mongoCluster = await db.collection('clusters').findOne({ id: matchedCluster.id });
       let appendedVariant = false;
 
-      if (!mongoCluster) {
-        // 🚀 Self-Healing Migration: If the matched cluster exists only in Pinecone, create the MongoDB 
-        // document utilizing current state (which pulls legacy values from Pinecone)
-        const initialVariants = [...matchedCluster.sampleVariants];
-        if (!initialVariants.includes(text)) {
-          initialVariants.push(text);
-          appendedVariant = true;
-        }
-
-        await db.collection('clusters').insertOne({
-          id: matchedCluster.id,
-          memberCount: matchedCluster.memberCount + (userAlreadyJoined ? 0 : 1),
-          sampleVariants: initialVariants,
-          userIds: userAlreadyJoined ? existingUserIds : [...existingUserIds, userId],
-          createdAt: matchedCluster.createdAt || nowStr,
-          lastUpdatedAt: nowStr,
-        });
-      } else {
-        // Existing document update: apply fast, atomic changes
-        const updateOps: any = {
-          $set: { lastUpdatedAt: nowStr }
-        };
-        
-        if (!userAlreadyJoined) {
-          updateOps.$inc = { memberCount: 1 };
-          updateOps.$push = { userIds: userId };
-        }
-        
-        if (!matchedCluster.sampleVariants.includes(text)) {
-          if (!updateOps.$push) updateOps.$push = {};
-          updateOps.$push.sampleVariants = text;
-          appendedVariant = true;
-        }
-        
-        await db.collection('clusters').updateOne(
-          { id: matchedCluster.id },
-          updateOps
-        );
+      
+      // Existing document update: apply fast, atomic changes
+      const updateOps: any = {
+        $set: { lastUpdatedAt: nowStr }
+      };
+      
+      if (!userAlreadyJoined) {
+        updateOps.$inc = { memberCount: 1, variantCount: 1 };
+        updateOps.$push = { userIds: userId };
       }
-
+      
+      if (!matchedCluster.sampleVariants.includes(text)) {
+        if (!updateOps.$push) updateOps.$push = {};
+        updateOps.$push.sampleVariants = text;
+        appendedVariant = true;
+      }
+      
+      await db.collection('clusters').updateOne(
+        { id: matchedCluster.id },
+        updateOps
+      );
+      
       const updatedCluster: ClusterRecord = {
         ...matchedCluster,
         memberCount: matchedCluster.memberCount + (userAlreadyJoined ? 0 : 1),
@@ -245,10 +233,27 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (error: any) {
+    // 1. Log the actual error object or error.cause
     console.error('Error handling problem submission:', error);
-    return NextResponse.json({ 
-      error: 'Internal Server Error', 
-      message: error.message || 'An error occurred during submission.' 
-    }, { status: 500 });
+
+    // 2. Access error.cause directly (with optional chaining)
+    if (error?.cause === 'AlreadySubmit') {
+      return NextResponse.json(
+        { 
+          error: 'Client Error', 
+          message: error.message || 'An error occurred during submission.' 
+        }, 
+        { status: 400 }
+      );
+    }
+
+    // 3. Fallback for server/unexpected errors
+    return NextResponse.json(
+      { 
+        error: 'Internal Server Error', 
+        message: 'An error occurred during submission.' 
+      }, 
+      { status: 500 }
+    );
   }
 }

@@ -12,10 +12,10 @@ export class LLMService implements ILLMService {
   ): Promise<ClassificationResult> {
     const provider = this.config.llmProvider;
 
-    const systemPrompt = `You are an AI classification assistant for a platform called P-X1 (Problem-Market Fit discovery engine for builders, developers, and founders).
+    const systemPrompt = `You are an AI classification assistant for a platform called NeedBoard (Problem-Market Fit discovery engine for builders, developers, and founders).
 Your job is to read an input user frustration or problem, validate it, classify it, and generate a clean, generalized, representative "canonical" description.
 
-P-X1's Mission:
+NeedBoard's Mission:
 We help developers, software engineers, and hardware builders find real-world, commercializable pain points (in software, developer experience, hardware, digital operations, physical gadgets, etc.) that they can solve by building software products (SaaS), physical hardware, or operational tools.
 
 Validation Rules:

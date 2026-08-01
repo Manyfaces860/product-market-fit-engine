@@ -7,7 +7,7 @@
 
 export const APP_COPY = {
   global: {
-    appName: "P-X1",
+    appName: "NeedBoard",
     tagline: "Problem-Market Fit Engine",
   },
 

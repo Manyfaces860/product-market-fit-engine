@@ -21,7 +21,7 @@ function generateEmailHtml(firstName: string, clusterText: string, productName: 
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>P-X1 Problem Solved</title>
+      <title>NeedBoard Problem Solved</title>
       <style>
         body {
           margin: 0;

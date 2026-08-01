@@ -9,7 +9,7 @@ import {
 } from './models/schema';
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB = process.env.MONGODB_DB || 'p-x1';
+const MONGODB_DB = process.env.MONGODB_DB_PROD || "needboard-dev";
 
 if (process.env.NODE_ENV !== 'test' && !MONGODB_URI) {
   console.warn('⚠️ MONGODB_URI is missing. MongoDB fallback mode will activate.');
@@ -396,6 +396,63 @@ export async function searchClusters(queryEmbedding: number[], limit = 5): Promi
 }
 
 /**
+ * Perform a semantic Atlas Vector Search against cluster centroids.
+ */
+export async function searchClustersForSubmit(queryEmbedding: number[], limit = 5): Promise<(MongoClusterDocument & { score?: number })[]> {
+  try {
+    const db = await getDb();
+    let results: any[];
+
+    if (isMongoDbLive()) {
+      // 🚀 MongoDB Atlas Vector Search Pipeline with strict field projections!
+      // This strictly returns ONLY the 5 fields rendered on search page cards, 
+      // completely stripping unrendered fields (embedding, sampleVariants, userIds, solutions, timestamps).
+      results = await db.collection('clusters').aggregate([
+        {
+          $vectorSearch: {
+            index: process.env.VECTOR_INDEX,
+            path: "embedding",
+            queryVector: queryEmbedding,
+            numCandidates: 100,
+            limit: limit
+          }
+        },
+        {
+          $project: {
+            embedding: 0,
+            score: { $meta: "vectorSearchScore" } // 🚀 Retrieve similarity score!
+          }
+        }
+      ]).toArray();
+    } else {
+      // 🛡️ In-memory Cosine Similarity fallback for local/offline dev!
+      results = await db.collection('clusters').aggregate([
+        {
+          $vectorSearch: {
+            index: "vector_index",
+            path: "embedding",
+            queryVector: queryEmbedding,
+            limit: limit
+          }
+        }
+      ]).toArray();
+    }
+    console.log("route: ", results)
+
+    // Sanitize and return search cards (NO SOLUTIONS joined - lazy loaded!)
+    return results.map((cluster: any) => {
+      // For local fallback mode, map to only those 5 required fields
+      return {
+        ...cluster
+      } as any;
+    });
+  } catch (error) {
+    console.error('[MongoDB] searchClusters failed:', error);
+    return [];
+  }
+}
+
+/**
  * Find adjacent clusters in vector space.
  */
 export async function getAdjacentClusters(clusterId: string, limit = 4): Promise<MongoClusterDocument[]> {
@@ -559,7 +616,19 @@ export async function getCategories(): Promise<CategoryWithCount[]> {
       { id: 'software-saas', label: 'SaaS & B2B Productivity', description: 'Administrative bottlenecks, calendar coordination headaches, and collaborative document syncing issues.' },
       { id: 'hardware-iot', label: 'Hardware & Smart Devices', description: 'Physical gadget issues, router band pairing headaches, and customized adapter shortages.' },
       { id: 'ecommerce-ops', label: 'E-commerce & Shipping Ops', description: 'Multi-channel inventory syncing, custom label printing bottlenecks, and automated return processing.' },
-      { id: 'ai-operations', label: 'AI & Data Infrastructure', description: 'High LLM processing latencies, vector indexing sync issues, rate-limiting, and unstructured document parsing.' }
+      { id: 'ai-operations', label: 'AI & Data Infrastructure', description: 'High LLM processing latencies, vector indexing sync issues, rate-limiting, and unstructured document parsing.' },
+      
+      // B2B-leaning
+      { id: 'fintech-payments', label: 'Fintech & Payments', description: 'Failed payment reconciliation, multi-currency invoicing headaches, and clunky subscription billing edge cases.' },
+      { id: 'hr-people-ops', label: 'HR & People Ops', description: 'Onboarding paperwork chaos, PTO tracking across time zones, and performance review tools nobody actually uses.' },
+      { id: 'security-compliance', label: 'Security & Compliance', description: 'Audit trail gaps, access permission sprawl, and manual compliance checklists that eat entire afternoons.' },
+      { id: 'customer-support', label: 'Customer Support & Success', description: 'Ticket routing that misfires, knowledge bases nobody keeps updated, and support tools disconnected from the actual product.' },
+
+      // B2C-leaning
+      { id: 'healthtech', label: 'Health & Wellness', description: 'Appointment scheduling friction, patient records that don\'t follow you between providers, and wearable data that never adds up right.' },
+      { id: 'consumer-finance', label: 'Personal Finance & Budgeting', description: 'Budgeting apps that miss real spending patterns, tax prep confusion, and shared expense tracking with roommates or partners.' },
+      { id: 'edtech-learning', label: 'Education & Learning', description: 'Clunky classroom tools, disjointed grading workflows, and course content lost across platform migrations.' },
+      { id: 'real-estate-housing', label: 'Real Estate & Housing', description: 'Manual lease review, outdated listing data, and landlord-tenant communication stuck in email threads.' },
     ];
 
     // 2. Fetch counts in parallel from MongoDB Collections! 🚀
