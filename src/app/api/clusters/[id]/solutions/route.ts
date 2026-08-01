@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { getClusterById, upsertCluster } from '@/lib/pinecone';
-import { embeddingService } from '@/lib/ai';
+import { getClusterById } from '@/lib/pinecone';
+import { getDb } from '@/lib/mongodb';
 import { Solution } from '@/lib/pinecone';
+import { blastLaunchNotification } from '@/lib/resend';
 
 /**
  * POST /api/clusters/[id]/solutions
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // 2. Parse and validate body
     const body = await req.json();
-    const { name, url, description, builderName, iconUrl } = body;
+    const { name, url, description, builderName, iconUrl, solutionId } = body;
 
     if (!name || name.trim() === '') {
       return NextResponse.json({ error: 'Validation Error', message: 'Product name is required.' }, { status: 400 });
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Validation Error', message: 'Description of how it solves the problem is required.' }, { status: 400 });
     }
 
-    // 3. Fetch cluster
+    // 3. Fetch cluster (This already joins solutions from MongoDB!)
     const cluster = await getClusterById(id);
     if (!cluster) {
       return NextResponse.json(
@@ -47,8 +48,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       );
     }
 
-    // 4. Enforce One-Solution-Per-User Constraint
     const existingSolutions = cluster.solutions || [];
+
+    // CHECK IDEMPOTENCY KEY: If solution with this client-generated ID already exists, short-circuit immediately
+    // Prevents double-submissions, duplicate writes, and double email blasts during network retries.
+    if (solutionId) {
+      const alreadyProcessed = existingSolutions.find(s => s.id === solutionId);
+      if (alreadyProcessed) {
+        console.log(`[Idempotency] Duplicate request caught for solutionId: ${solutionId}. Silently returning success.`);
+        return NextResponse.json({
+          success: true,
+          cluster,
+          solution: alreadyProcessed,
+        });
+      }
+    }
+
+    // 4. Enforce One-Solution-Per-User Constraint
     const userHasSolution = existingSolutions.some(s => s.builderId === userId);
     if (userHasSolution) {
       return NextResponse.json(
@@ -68,8 +84,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // 6. Build Solution Record
-    const newSolution: Solution = {
-      id: `sol_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    const newSolution = {
+      id: solutionId || `sol_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      clusterId: id, // 🚀 Relational key back to the cluster/problem group
       name: name.trim(),
       url: url.trim(),
       description: description.trim(),
@@ -81,20 +98,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       iconUrl: (iconUrl && iconUrl.trim() !== '') ? iconUrl.trim() : '/placeholder-solution-icon.png',
     };
 
-    // 6. Update cluster with the nested solution
-    const updatedCluster = {
-      ...cluster,
-      solutions: [...existingSolutions, newSolution],
-      lastUpdatedAt: new Date().toISOString(),
-    };
+    // 6. Persist directly to MongoDB 🚀
+    const db = await getDb();
+    await db.collection('solutions').insertOne(newSolution);
 
-    // Re-get the centroid vector by re-embedding canonical text
-    const centroidEmbedding = await embeddingService.getEmbedding(cluster.canonicalText);
-    await upsertCluster(updatedCluster, centroidEmbedding);
+    // 7. Dispatch automated launch notifications to co-signers in the background
+    // Running this in the background guarantees an instantaneous HTTP 200 response for the Builder!
+    const coSigners = cluster.userIds || [];
+    if (coSigners.length > 0) {
+      console.log(`[Notification] Backgrounding email blast for ${coSigners.length} co-signers...`);
+      blastLaunchNotification(
+        coSigners,
+        cluster.canonicalText,
+        newSolution.name,
+        id
+      ).catch(err => console.error('[Notification] Background email blast failed:', err));
+    }
 
     return NextResponse.json({
       success: true,
-      cluster: updatedCluster,
+      cluster: {
+        ...cluster,
+        solutions: [...existingSolutions, newSolution],
+      },
       solution: newSolution,
     });
   } catch (error: any) {

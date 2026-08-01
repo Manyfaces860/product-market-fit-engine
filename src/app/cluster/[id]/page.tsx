@@ -61,7 +61,10 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     const msg = error?.message || '';
     const name = error?.name || '';
     
-    // Catch rate limiting and convert to friendly guidance
+    // Catch rate limiting and convert to friendly guidance, preserving dynamic countdowns
+    if (msg.toLowerCase().includes('try again in')) {
+      return msg;
+    }
     if (msg.includes('429') || msg.includes('Too Many Requests') || msg.includes('rate limit')) {
       return 'You are making requests too quickly. Please wait a moment before trying again to keep usage fair!';
     }
@@ -159,6 +162,12 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       : `/api/clusters/${id}/solutions`;
     const method = isEditing ? 'PATCH' : 'POST';
 
+    // Generate client-side Idempotency Key for brand new solution listings.
+    // This locks the submission ID so that network retries are perfectly deduplicated server-side!
+    const clientSolutionId = isEditing 
+      ? undefined 
+      : `sol_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
     try {
       const res = await fetchWithRetry(endpoint, {
         method,
@@ -169,7 +178,9 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           description: solDesc,
           builderName: solBuilderName,
           iconUrl: solIconUrl,
+          solutionId: clientSolutionId, // Transmit Idempotency Key to server
         }),
+        timeoutMs: 15000, // Extend write-and-blast timeout limit to 15 seconds
       });
 
       const data = await res.json();

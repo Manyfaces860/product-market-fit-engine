@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getDb } from '@/lib/mongodb';
-import { getClusterById } from '@/lib/pinecone';
 
 /**
  * GET /api/clusters/[id]/solutions/[solutionId]/reviews
@@ -22,7 +21,7 @@ export async function GET(
       .toArray();
 
     // Sort newest first
-    reviews.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    reviews.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return NextResponse.json({
       success: true,
@@ -79,19 +78,14 @@ export async function POST(
       );
     }
 
-    // 3. Verify the cluster and solution actually exist (Referential integrity)
-    const cluster = await getClusterById(id);
-    if (!cluster) {
-      return NextResponse.json({ error: 'Not Found', message: 'Problem group not found.' }, { status: 404 });
-    }
-    const solutions = cluster.solutions || [];
-    const solutionExists = solutions.some(s => s.id === solutionId);
-    if (!solutionExists) {
+    // 3. Connect to MongoDB and verify the solution actually exists and belongs to this cluster (Referential integrity)
+    const db = await getDb();
+    const solution = await db.collection('solutions').findOne({ id: solutionId });
+    if (!solution || solution.clusterId !== id) {
       return NextResponse.json({ error: 'Not Found', message: 'Listed solution product not found.' }, { status: 404 });
     }
 
-    // 4. Connect to MongoDB and enforce the ONE-REVIEW-PER-USER constraint
-    const db = await getDb();
+    // 4. Enforce the ONE-REVIEW-PER-USER constraint
     const existingReview = await db.collection('reviews').findOne({ solutionId, userId });
     
     if (existingReview) {

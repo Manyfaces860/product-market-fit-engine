@@ -3,6 +3,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 // Protect the API routes that perform heavy LLM calculations
 const isProtectedRoute = createRouteMatcher([
   '/api/problems(.*)',
+  '/api/search(.*)', // 🚀 Protect semantic search endpoint too!
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getClusterById, upsertCluster } from '@/lib/pinecone';
-import { embeddingService } from '@/lib/ai';
+import { getClusterById } from '@/lib/pinecone';
+import { getDb } from '@/lib/mongodb';
 
 /**
  * POST /api/clusters/[id]/solutions/[solutionId]/upvote
@@ -22,30 +22,20 @@ export async function POST(
       );
     }
 
-    // 2. Fetch cluster
-    const cluster = await getClusterById(id);
-    if (!cluster) {
-      return NextResponse.json(
-        { error: 'Not Found', message: `Problem group with ID ${id} not found.` },
-        { status: 404 }
-      );
-    }
+    // 2. Connect to MongoDB and fetch solution details
+    const db = await getDb();
+    const solution = await db.collection('solutions').findOne({ id: solutionId });
 
-    // 3. Find and update the specific solution
-    const solutions = cluster.solutions || [];
-    const solutionIndex = solutions.findIndex(s => s.id === solutionId);
-
-    if (solutionIndex === -1) {
+    if (!solution) {
       return NextResponse.json(
         { error: 'Not Found', message: `Solution with ID ${solutionId} not found.` },
         { status: 404 }
       );
     }
 
-    const solution = solutions[solutionIndex];
     const votesUserIds = solution.votesUserIds || [];
 
-    // 4. Check for duplicate upvotes
+    // 3. Check for duplicate upvotes
     if (votesUserIds.includes(userId)) {
       return NextResponse.json(
         { error: 'Conflict', message: 'You have already upvoted this solution!' },
@@ -53,30 +43,28 @@ export async function POST(
       );
     }
 
-    // 5. Apply upvote & record user ID
+    // 4. Apply upvote atomically in MongoDB 🚀
+    await db.collection('solutions').updateOne(
+      { id: solutionId },
+      {
+        $inc: { upvotes: 1 },
+        $push: { votesUserIds: userId }
+      }
+    );
+
+    // 5. Fetch updated cluster (The pinecone utility dynamically joins the freshly updated solution from MongoDB!)
+    const cluster = await getClusterById(id);
+
+    // Construct updated solution representation for instantaneous frontend return state
     const updatedSolution = {
       ...solution,
-      upvotes: solution.upvotes + 1,
+      upvotes: (solution.upvotes || 0) + 1,
       votesUserIds: [...votesUserIds, userId],
     };
 
-    const updatedSolutions = [...solutions];
-    updatedSolutions[solutionIndex] = updatedSolution;
-
-    // 6. Update cluster with updated solutions list
-    const updatedCluster = {
-      ...cluster,
-      solutions: updatedSolutions,
-      lastUpdatedAt: new Date().toISOString(),
-    };
-
-    // Re-get the centroid vector by re-embedding canonical text
-    const centroidEmbedding = await embeddingService.getEmbedding(cluster.canonicalText);
-    await upsertCluster(updatedCluster, centroidEmbedding);
-
     return NextResponse.json({
       success: true,
-      cluster: updatedCluster,
+      cluster,
       solution: updatedSolution,
     });
   } catch (error: any) {

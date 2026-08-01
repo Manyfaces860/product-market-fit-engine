@@ -6,6 +6,7 @@ import { Search, ArrowRight, AlertTriangle, ChevronRight, HelpCircle } from 'luc
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_COPY } from '@/lib/config/copy';
 import { PageScanner } from '@/components/Loader';
+import { useAuth, SignInButton } from '@clerk/nextjs';
 
 const MAX_QUERY_CHARS = 500;
 
@@ -21,6 +22,7 @@ interface Cluster {
 }
 
 export default function SearchPage() {
+  const { isSignedIn } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,13 +89,24 @@ export default function SearchPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading || query.trim() === '' || isQueryTooLong}
-            className="h-10 px-5 font-mono text-[10px] tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 rounded-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50 disabled:pointer-events-none"
-          >
-            {loading ? APP_COPY.search.searchingText : 'Search'}
-          </button>
+          {isSignedIn ? (
+            <button
+              type="submit"
+              disabled={loading || query.trim() === '' || isQueryTooLong}
+              className="h-10 px-5 font-mono text-[10px] tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 rounded-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {loading ? APP_COPY.search.searchingText : 'Search'}
+            </button>
+          ) : (
+            <SignInButton mode="modal">
+              <button
+                type="button"
+                className="h-10 px-5 font-mono text-[10px] tracking-wider uppercase font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+              >
+                Sign In to Search
+              </button>
+            </SignInButton>
+          )}
         </form>
 
         {/* Character Check & Counter */}

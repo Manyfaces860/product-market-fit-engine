@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { getProblemById, getClusterById, upsertCluster, insertProblem } from '@/lib/pinecone';
-import { embeddingService } from '@/lib/ai';
+import { getProblemById, getClusterById, insertProblem } from '@/lib/pinecone';
+import { getDb } from '@/lib/mongodb';
 
 /**
  * POST /api/admin/reassign
@@ -72,38 +72,51 @@ export async function POST(req: NextRequest) {
     }
 
     const rawText = problem.rawText;
+    const db = await getDb();
+    const nowStr = new Date().toISOString();
 
-    // 5. UPDATE SOURCE CLUSTER (Decrement)
-    // Filter out the raw text from variants list
-    const updatedSourceVariants = (sourceCluster.sampleVariants || []).filter(v => v !== rawText);
+    // 5. UPDATE SOURCE CLUSTER IN MONGODB (Decrement)
+    await db.collection('clusters').updateOne(
+      { id: sourceClusterId },
+      { 
+        $inc: { memberCount: -1 },
+        $pull: { sampleVariants: rawText },
+        $set: { lastUpdatedAt: nowStr }
+      }
+    );
+
     const updatedSourceCluster = {
       ...sourceCluster,
       memberCount: Math.max(0, sourceCluster.memberCount - 1),
-      sampleVariants: updatedSourceVariants,
-      lastUpdatedAt: new Date().toISOString(),
+      sampleVariants: (sourceCluster.sampleVariants || []).filter(v => v !== rawText),
+      lastUpdatedAt: nowStr,
+    };
+
+    // 6. UPDATE TARGET CLUSTER IN MONGODB (Increment)
+    const targetUpdateOps: any = {
+      $inc: { memberCount: 1 },
+      $set: { lastUpdatedAt: nowStr }
     };
     
-    const sourceEmbedding = await embeddingService.getEmbedding(sourceCluster.canonicalText);
-    await upsertCluster(updatedSourceCluster, sourceEmbedding);
-
-    // 6. UPDATE TARGET CLUSTER (Increment)
-    // Append raw text to target variants if under the cap
-    const updatedTargetVariants = [...(targetCluster.sampleVariants || [])];
-    if (!updatedTargetVariants.includes(rawText) && updatedTargetVariants.length < 8) {
-      updatedTargetVariants.push(rawText);
+    let appendedVariant = false;
+    if (!(targetCluster.sampleVariants || []).includes(rawText)) {
+      targetUpdateOps.$push = { sampleVariants: rawText };
+      appendedVariant = true;
     }
+
+    await db.collection('clusters').updateOne(
+      { id: targetClusterId },
+      targetUpdateOps
+    );
 
     const updatedTargetCluster = {
       ...targetCluster,
       memberCount: targetCluster.memberCount + 1,
-      sampleVariants: updatedTargetVariants,
-      lastUpdatedAt: new Date().toISOString(),
+      sampleVariants: appendedVariant ? [...(targetCluster.sampleVariants || []), rawText] : targetCluster.sampleVariants,
+      lastUpdatedAt: nowStr,
     };
 
-    const targetEmbedding = await embeddingService.getEmbedding(targetCluster.canonicalText);
-    await upsertCluster(updatedTargetCluster, targetEmbedding);
-
-    // 7. UPDATE THE PROBLEM'S METADATA (Move parent link)
+    // 7. UPDATE THE PROBLEM'S METADATA IN PINECONE (Move parent link)
     const updatedProblem = {
       ...problem,
       clusterId: targetClusterId,

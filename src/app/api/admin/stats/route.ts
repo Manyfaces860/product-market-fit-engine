@@ -32,13 +32,16 @@ export async function GET(req: NextRequest) {
     
     // Pinecone Stats
     const totalClustersCount = clusters.length;
-    let totalSolutionsCount = 0;
     const categoryPopularity: Record<string, number> = {};
 
     for (const c of clusters) {
-      totalSolutionsCount += (c.solutions || []).length;
       categoryPopularity[c.categoryLabel] = (categoryPopularity[c.categoryLabel] || 0) + c.memberCount;
     }
+
+    // MongoDB Solutions Count 🚀
+    const totalSolutionsCount = db.collection('solutions').countDocuments 
+      ? await db.collection('solutions').countDocuments() 
+      : (await db.collection('solutions').find({}).toArray()).length;
 
     // MongoDB Reviews Count
     const totalReviewsCount = await db.collection('reviews').countDocuments ? await db.collection('reviews').countDocuments() : (await db.collection('reviews').find({}).toArray()).length;

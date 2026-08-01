@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClusters } from '@/lib/pinecone';
+import { createResponse } from '@/lib/response';
 
 export async function GET(req: NextRequest) {
   try {
@@ -7,7 +8,7 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category') || undefined;
 
     const clusters = await getClusters(category);
-    return NextResponse.json(clusters);
+    return createResponse(clusters);
   } catch (error: any) {
     console.error('Error in GET /api/clusters:', error);
     return NextResponse.json({ error: 'Internal Server Error', message: error.message }, { status: 500 });

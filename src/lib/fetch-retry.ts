@@ -18,12 +18,19 @@ export interface FetchRetryOptions extends RequestInit {
  */
 export async function fetchWithRetry(
   url: string,
-  options: FetchRetryOptions = {}
+  options: FetchRetryOptions = {},
+  timeout: number = 60000
 ): Promise<Response> {
+  // Auto-escalate the default timeout for heavy batch actions like seeding or admin stats
+  let defaultTimeout = timeout;
+  if (url.includes('/api/seed') || url.includes('/api/admin/stats')) {
+    defaultTimeout = 100000; // 🚀 20 seconds comfortable breathing room
+  }
+
   const {
     maxRetries = 3,
     initialDelayMs = 1000,
-    timeoutMs = 8000,
+    timeoutMs = defaultTimeout,
     onRetry,
     ...fetchOptions
   } = options;
@@ -60,10 +67,9 @@ export async function fetchWithRetry(
         return response;
       }
 
-      // If we got a client-side error (4xx) that is NOT a conflict/rate-limit,
-      // don't retry as it is a permanent request format error (e.g. 401, 400, 404).
-      // If it is a server error (5xx) or a transient block, we proceed to retry.
-      if (response.status >= 400 && response.status < 500 && response.status !== 429 && response.status !== 408) {
+      // If we got a client-side error (4xx) that is NOT a transient block,
+      // don't retry as it is a permanent request format error (e.g. 401, 400, 404, or explicit 429 rate limits).
+      if (response.status >= 400 && response.status < 500 && response.status !== 408) {
         return response; 
       }
 
