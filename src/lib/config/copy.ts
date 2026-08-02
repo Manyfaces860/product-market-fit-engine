@@ -46,7 +46,7 @@ export const APP_COPY = {
   search: {
     title: "Validate Your Product Idea",
     subtitle: "Search across real customer complaints to see if people actually struggle with the problem you want to solve.",
-    inputPlaceholder: "Search for problems or frustrations (e.g. monorepo, calendar sync, IoT setup)...",
+    inputPlaceholder: "Search for problems or frustrations (e.g. monorepo, calendar sync)",
     searchingText: "Searching databases...",
     resultsTitle: "Matching Pain Points",
     noResults: "We couldn't find any active groups matching that search. This might be a brand new niche to seed!",

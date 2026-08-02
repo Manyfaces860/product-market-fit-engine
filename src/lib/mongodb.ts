@@ -436,7 +436,6 @@ export async function searchClustersForSubmit(queryEmbedding: number[], limit = 
         }
       ]).toArray();
     }
-    console.log("route: ", results)
 
     // Sanitize and return search cards (NO SOLUTIONS joined - lazy loaded!)
     return results.filter((cluster: any) => cluster.score >= SIMILARITY_THRESHOLD)

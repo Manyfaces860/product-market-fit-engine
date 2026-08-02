@@ -376,7 +376,7 @@ export default function Home() {
                               type="button"
                               className="w-full md:w-auto h-12 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 px-6 rounded-xl active:scale-95 transition-all cursor-pointer"
                           >
-                            {APP_COPY.home.signInToSubmitText}
+                            {APP_COPY.home.submitButtonText}
                           </button>
                         </SignInButton>
                       </Show>
