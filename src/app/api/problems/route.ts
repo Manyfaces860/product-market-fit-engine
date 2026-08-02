@@ -18,7 +18,7 @@ import {
   MongoProblemDocument as ProblemRecord 
 } from '@/lib/models/schema';
 
-const SIMILARITY_THRESHOLD = Number(process.env.NEXT_PUBLIC_SIMILARITY_THRESHOLD || 0.40);
+const SIMILARITY_THRESHOLD = Number(process.env.NEXT_PUBLIC_SIMILARITY_THRESHOLD || 0.70);
 
 export async function POST(req: NextRequest) {
   try {

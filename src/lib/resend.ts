@@ -156,7 +156,7 @@ function generateEmailHtml(firstName: string, clusterText: string, productName: 
         
         <!-- Header -->
         <div class="header">
-          <div class="header-logo">// P-X1 Discovery Loop</div>
+          <div class="header-logo">// NeedBoard Discovery Loop</div>
           <h1 class="header-title">A Solution Has Launched!</h1>
         </div>
 
@@ -175,7 +175,7 @@ function generateEmailHtml(firstName: string, clusterText: string, productName: 
 
           <!-- The launched Solution -->
           <div class="box-solution">
-            <div class="box-solution-title">🚀 ${productName}</div>
+            <div class="box-solution-title font"> ${productName}</div>
             <p class="box-solution-desc">
               This newly listed product claims to address your exact setup bottlenecks. Click below to inspect its features, join the private beta, and read live developer reviews!
             </p>
@@ -183,17 +183,17 @@ function generateEmailHtml(firstName: string, clusterText: string, productName: 
           </div>
 
           <p class="main-text" style="margin-bottom: 0;">
-            Thank you for being part of P-X1. By validating real-world pain points, you are helping creators build things that actually matter.
+            Thank you for being part of NeedBoard. By validating real-world pain points, you are helping creators build things that actually matter.
           </p>
         </div>
 
         <!-- Footer -->
         <div class="footer">
           <p class="footer-text">
-            You received this email because you co-signed a pain point report on the P-X1 engine.
+            You received this email because you co-signed a pain point report on the NeedBoard engine.
           </p>
           <p class="footer-text">
-            <a href="${siteUrl}" class="footer-link">P-X1 Engine</a> &bull; <a href="${siteUrl}/browse" class="footer-link">Browse Opportunities</a>
+            <a href="${siteUrl}" class="footer-link">NeedBoard Engine</a> &bull; <a href="${siteUrl}/browse" class="footer-link">Browse Opportunities</a>
           </p>
         </div>
 

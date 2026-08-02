@@ -22,7 +22,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'P-X1 — Collective Problem Clustering',
+  title: 'NeedBoard — Collective Problem Clustering',
   description: 'See the noise become a pattern. A platform where scattered frustrations cluster into visible collective signal.',
 };
 

@@ -1,4 +1,4 @@
-# P-X1 — Collective Problem Clustering Platform (Prototype)
+# NeedBoard — Collective Problem Clustering Platform (Prototype)
 
 NeedBoard is an interactive, vector-driven web application where anyone can post a problem, complaint, or frustration about literally anything. Using advanced vector search (Pinecone) and LLM classification (Anthropic, OpenAI, Vertex AI, and other customizable endpoints), the system automatically categorizes each submission and clusters similar underlying frustrations into collective signals.
 
@@ -31,7 +31,7 @@ Open `.env` and fill out your credentials. The environment variables are organiz
 
 #### A. Pinecone (Vector Database)
 - `PINECONE_API_KEY`: Your Pinecone personal access key.
-- `PINECONE_INDEX`: The name of your index (e.g., `p-x1-problems`).
+- `PINECONE_INDEX`: The name of your index (e.g., `NeedBoard-problems`).
   - *Recommendation:* Create an index with **1536 dimensions** and **Cosine similarity** metrics (matching standard embeddings like OpenAI `text-embedding-3-small`).
 
 #### B. Clerk Authentication (Required)
@@ -53,7 +53,7 @@ Protects the heavy AI calculation routes from misuse and spam.
 
 ## 🤖 Configuring AI & Embedding Providers
 
-P-X1 is fully modular and supports several LLM and Embedding providers, selectable via `LLM_PROVIDER` and `EMBEDDING_PROVIDER` in your `.env`.
+NeedBoard is fully modular and supports several LLM and Embedding providers, selectable via `LLM_PROVIDER` and `EMBEDDING_PROVIDER` in your `.env`.
 
 ### 1. OpenAI (Default)
 Set:
@@ -138,7 +138,7 @@ By default, the platform routes live notifications using our custom domain sende
 
 ## 🛠️ Developer Seed Tool
 
-Starting with an empty Pinecone database is boring! P-X1 includes an interactive **Developer Seeding Tool** built directly into the UI.
+Starting with an empty Pinecone database is boring! NeedBoard includes an interactive **Developer Seeding Tool** built directly into the UI.
 1. When you first launch the app with an empty Pinecone index, a banner will appear at the top of the Home page.
 2. Click **"Seed Data"** (or hit `GET /api/seed`).
 3. The system will automatically construct **5 rich, realistic, category-distributed problem clusters** (Housing boiler breakdowns, Subway delays, Cookie dark patterns, Smart fridge screen freezes, and Delivery package theft) with complete variants in your Pinecone index.

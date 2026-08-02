@@ -158,7 +158,7 @@ export default function SearchPage() {
               </h3>
               
               <div className="space-y-4">
-                {results.map((cluster) => {
+                {results && results.map((cluster) => {
                   // Display match score percentage
                   const similarityPct = cluster.score ? Math.round(cluster.score * 100) : 0;
                   

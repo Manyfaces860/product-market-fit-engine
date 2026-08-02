@@ -3,6 +3,7 @@ import { resolve } from 'path';
 config({ path: resolve(process.cwd(), '.env') });
 
 import { OpenAI } from 'openai';
+import staticCategories from '../src/lib/ai/static-categories';
 
 // -------------------------------------------------------------
 // 📐 COSINE SIMILARITY MATH HELPER
@@ -16,49 +17,27 @@ function getCosineSimilarity(v1: number[], v2: number[]): number {
 }
 
 // -------------------------------------------------------------
-// 📋 THE 5 CORE BUILDER NICHE CANONICAL TEXTS (SEED DATA)
+// 📋 DYNAMICALLY LOAD THE 13 CORE STATIC CATEGORIES
 // -------------------------------------------------------------
-const CANONICAL_TARGETS = [
-  {
-    category: 'software-devtools',
-    label: 'Developer Tools & DX',
-    text: 'Flaky local testing setups and slow hot-reload compilation times in microfrontend development'
-  },
-  {
-    category: 'software-saas',
-    label: 'SaaS & B2B Productivity',
-    text: 'No simple way to automatically sync real-time calendar availability across multiple independent external organizations'
-  },
-  {
-    category: 'hardware-iot',
-    label: 'Hardware & Smart Devices',
-    text: 'Difficulties pairing smart-home Zigbee/Matter devices across combined dual-band router bands'
-  },
-  {
-    category: 'ecommerce-ops',
-    label: 'E-commerce & Shipping Ops',
-    text: 'Inaccurate real-time inventory counts when cross-listing products on Shopify, Etsy, and eBay'
-  },
-  {
-    category: 'ai-operations',
-    label: 'AI & Data Infrastructure',
-    text: 'Extremely high latency and token costs when parsing massive unstructured PDF contracts using LLMs'
-  }
-];
+const CANONICAL_TARGETS = staticCategories.map(cat => ({
+  category: cat.id,
+  label: cat.label,
+  text: cat.description
+}));
 
 // -------------------------------------------------------------
-// 🧪 REAL-WORLD USER TEST CASES (MESSY COMPLAINTS)
+// 🧪 COMPREHENSIVE TEST CASES (13 POSITIVE, 2 NEGATIVE)
 // -------------------------------------------------------------
 const TEST_CASES = [
   {
     input: "Cypress integration tests randomly crash locally on our modular federated codebases, it is destroying developer velocity.",
     expectedCategory: 'software-devtools',
-    intent: "Verify DevTools hot-reload/testing match"
+    intent: "Verify DevTools match"
   },
   {
     input: "I run an agency and coordinating bookings with 5 client teams via different shared Calendly links is taking hours.",
     expectedCategory: 'software-saas',
-    intent: "Verify Calendar Availability Sync match"
+    intent: "Verify SaaS & B2B Productivity match"
   },
   {
     input: "My mesh router combines 2.4 and 5ghz bands into one name, and now my Zigbee bulbs fail to register.",
@@ -76,9 +55,54 @@ const TEST_CASES = [
     intent: "Verify LLM Token Cost/Latency PDF parsing match"
   },
   {
+    input: "Our finance team is spending hours every Friday manually matching bank transfer CSV exports to Stripe invoice IDs.",
+    expectedCategory: 'fintech-payments',
+    intent: "Verify Fintech & Payments match"
+  },
+  {
+    input: "The new hire onboarding process is just a huge thread in Slack with 15 different links to PDF forms and Notion docs.",
+    expectedCategory: 'hr-people-ops',
+    intent: "Verify HR & People Ops match"
+  },
+  {
+    input: "We have no central way to track who has access to which production databases, and our SOC2 auditor is going to reject this.",
+    expectedCategory: 'security-compliance',
+    intent: "Verify Security & Compliance match"
+  },
+  {
+    input: "Customers are getting frustrated because Zendesk keeps routing billing issues to our tier-1 technical support team.",
+    expectedCategory: 'customer-support',
+    intent: "Verify Customer Support match"
+  },
+  {
+    input: "I had to fill out the exact same physical paper medical history form at three different clinics owned by the same hospital network.",
+    expectedCategory: 'healthtech',
+    intent: "Verify Health & Wellness match"
+  },
+  {
+    input: "My budgeting app completely misses my rent payments because they go through Venmo and get categorized as general transfers.",
+    expectedCategory: 'consumer-finance',
+    intent: "Verify Personal Finance & Budgeting match"
+  },
+  {
+    input: "When migrating our courses from Canvas to Moodle, half of the student grade histories and uploaded assignments were completely corrupted.",
+    expectedCategory: 'edtech-learning',
+    intent: "Verify Education & Learning match"
+  },
+  {
+    input: "Getting our security deposit back took 6 weeks and 40 back-and-forth emails because the landlord kept losing the receipts.",
+    expectedCategory: 'real-estate-housing',
+    intent: "Verify Real Estate & Housing match"
+  },
+  {
     input: "The weather in Seattle is so rainy and damp, I can't stand it.",
-    expectedCategory: 'none', // Should have low similarity to all
-    intent: "Verify non-builder/unrelated complaints are isolated"
+    expectedCategory: 'none',
+    intent: "Verify unrelated general complaint is isolated"
+  },
+  {
+    input: "What is the capital of France? I need to know for a trivia game tonight.",
+    expectedCategory: 'none',
+    intent: "Verify unrelated trivia/question is isolated"
   }
 ];
 
@@ -88,12 +112,9 @@ async function runSemanticRetrievalTest() {
   
   if (!apiKey) {
     console.error("\n❌ Error: OPENROUTER_API_KEY is missing in your .env file.");
-    console.log("To run real-world vector retrieval tests via OpenRouter, please add your OpenRouter API Key.");
-    console.log("The test script requires active embeddings calculations to showcase the exact vector math.\n");
     process.exit(1);
   }
 
-  // Initialize OpenAI client pointing to OpenRouter REST base url
   const openai = new OpenAI({ 
     baseURL: 'https://openrouter.ai/api/v1',
     apiKey 
@@ -102,11 +123,11 @@ async function runSemanticRetrievalTest() {
   console.log("\n=============================================================");
   console.log("⚡ CORE RETRIEVAL ENGINE: OPENROUTER SIMILARITY TESTING ⚡");
   console.log(`📡 Model: ${model}`);
+  console.log(`📁 Loaded Categories: ${CANONICAL_TARGETS.length} from static-categories.ts`);
   console.log("=============================================================\n");
-  console.log("Computing embeddings for the 5 target niche canonicals...");
+  console.log("Computing embeddings for the 13 static category descriptions...");
 
   try {
-    // 1. Fetch embeddings for canonical targets
     const targetTexts = CANONICAL_TARGETS.map(t => t.text);
     const targetResponse = await openai.embeddings.create({
       model,
@@ -118,69 +139,122 @@ async function runSemanticRetrievalTest() {
       vector: targetResponse.data[index].embedding
     }));
 
-    console.log("✅ Canonical target vectors generated successfully.\n");
+    console.log("✅ Category description vectors generated successfully.\n");
     console.log("-------------------------------------------------------------");
     console.log("Running user complaints through the matching matrix...");
     console.log("-------------------------------------------------------------\n");
 
-    const SIMILARITY_THRESHOLD = 0.40; // Standard merge boundary
-    let passedCount = 0;
+    // We'll test multiple thresholds to find the sweet spot
+    const candidateThresholds = [0.30, 0.35, 0.38, 0.40, 0.42, 0.45, 0.50];
+    const thresholdResults = candidateThresholds.map(t => ({ threshold: t, passed: 0, failed: 0 }));
+
+    // Store all computed scores for analysis
+    const testCasesScored: Array<{
+      input: string;
+      intent: string;
+      expectedCategory: string;
+      bestMatchCategory: string;
+      bestMatchScore: number;
+      secondBestMatchCategory: string;
+      secondBestMatchScore: number;
+      scores: Array<{ category: string; score: number }>;
+    }> = [];
 
     for (let idx = 0; idx < TEST_CASES.length; idx++) {
       const tc = TEST_CASES[idx];
-      console.log(`[Test #${idx + 1}] Intent: ${tc.intent}`);
+      console.log(`[Test #${idx + 1}/${TEST_CASES.length}] Intent: ${tc.intent}`);
       console.log(`💬 Raw User Complaint: "${tc.input}"`);
 
-      // Generate embedding for user input
       const inputResponse = await openai.embeddings.create({
         model,
         input: [tc.input],
       });
       const inputVector = inputResponse.data[0].embedding;
 
-      // Check similarity against all 5 targets
       const scoredMatches = targetsWithVectors.map(target => {
         const similarity = getCosineSimilarity(inputVector, target.vector);
         return {
-          ...target,
+          category: target.category,
+          label: target.label,
           similarity: Number(similarity.toFixed(4))
         };
       });
 
-      // Sort matches by highest similarity
       scoredMatches.sort((a, b) => b.similarity - a.similarity);
       const bestMatch = scoredMatches[0];
-      const isMergeable = bestMatch.similarity >= SIMILARITY_THRESHOLD;
+      const secondBestMatch = scoredMatches[1];
 
-      console.log("📊 Cosine Similarity Scores:");
-      scoredMatches.forEach(match => {
-        const barLength = Math.round(match.similarity * 20);
-        const bar = "█".repeat(Math.max(0, barLength)) + "░".repeat(Math.max(0, 20 - barLength));
-        console.log(`  • [${match.category.padEnd(17)}] Score: ${match.similarity.toFixed(4)} ${bar} (${match.label})`);
+      testCasesScored.push({
+        input: tc.input,
+        intent: tc.intent,
+        expectedCategory: tc.expectedCategory,
+        bestMatchCategory: bestMatch.category,
+        bestMatchScore: bestMatch.similarity,
+        secondBestMatchCategory: secondBestMatch.category,
+        secondBestMatchScore: secondBestMatch.similarity,
+        scores: scoredMatches.map(m => ({ category: m.category, score: m.similarity }))
       });
 
-      console.log(`\n🎯 Results Decision:`);
-      if (isMergeable) {
-        console.log(`  👉 MERGE SUCCESS: Score ${bestMatch.similarity} is >= ${SIMILARITY_THRESHOLD}.`);
-        console.log(`  👉 Action: Join existing group [${bestMatch.category}] "${bestMatch.text}"`);
-      } else {
-        console.log(`  👉 SEED FRESH GROUP: Best score ${bestMatch.similarity} is < ${SIMILARITY_THRESHOLD}.`);
-        console.log(`  👉 Action: No match found. Seeding a brand new market niche!`);
-      }
-
-      // Assertions
-      const matchedCategory = isMergeable ? bestMatch.category : 'none';
-      if (matchedCategory === tc.expectedCategory) {
-        console.log("✨ ASSERTION: [PASSED] - Correctly classified and matched.\n");
-        passedCount++;
-      } else {
-        console.log(`❌ ASSERTION: [FAILED] - Expected "${tc.expectedCategory}" but got "${matchedCategory}"\n`);
-      }
+      console.log("📊 Top 5 Cosine Similarity Scores:");
+      scoredMatches.slice(0, 5).forEach(match => {
+        const barLength = Math.round(match.similarity * 20);
+        const bar = "█".repeat(Math.max(0, barLength)) + "░".repeat(Math.max(0, 20 - barLength));
+        console.log(`  • [${match.category.padEnd(20)}] Score: ${match.similarity.toFixed(4)} ${bar} (${match.label})`);
+      });
       console.log("-------------------------------------------------------------");
     }
 
-    const pct = ((passedCount / TEST_CASES.length) * 100).toFixed(0);
-    console.log(`\n🏁 SIMILARITY TESTING COMPLETE: ${passedCount}/${TEST_CASES.length} Cases Passed (${pct}%)`);
+    // Now, run evaluation for each candidate threshold!
+    console.log("\n=============================================================");
+    console.log("📈 THRESHOLD PERFORMANCE CALIBRATION REPORT 📈");
+    console.log("=============================================================\n");
+
+    candidateThresholds.forEach((threshold, index) => {
+      let passedCount = 0;
+      testCasesScored.forEach(tc => {
+        const isMergeable = tc.bestMatchScore >= threshold;
+        const matchedCategory = isMergeable ? tc.bestMatchCategory : 'none';
+        if (matchedCategory === tc.expectedCategory) {
+          passedCount++;
+        }
+      });
+      
+      const pct = ((passedCount / TEST_CASES.length) * 100).toFixed(0);
+      thresholdResults[index].passed = passedCount;
+      thresholdResults[index].failed = TEST_CASES.length - passedCount;
+      console.log(`Threshold ${threshold.toFixed(2)}: ${passedCount}/${TEST_CASES.length} cases passed (${pct}%)`);
+    });
+
+    console.log("\n🔎 Detailed Failure Modes per Threshold:");
+    candidateThresholds.forEach(threshold => {
+      console.log(`\n--- Threshold ${threshold.toFixed(2)} ---`);
+      let failedInThreshold = 0;
+      testCasesScored.forEach(tc => {
+        const isMergeable = tc.bestMatchScore >= threshold;
+        const matchedCategory = isMergeable ? tc.bestMatchCategory : 'none';
+        if (matchedCategory !== tc.expectedCategory) {
+          failedInThreshold++;
+          if (tc.expectedCategory === 'none') {
+            console.log(`  ❌ FALSE POSITIVE: "${tc.input}" matched to "${matchedCategory}" with score ${tc.bestMatchScore.toFixed(4)} (Expected rejection: none)`);
+          } else {
+            if (!isMergeable) {
+              console.log(`  ❌ FALSE NEGATIVE: "${tc.input}" was rejected as "none" but should have matched "${tc.expectedCategory}" (Best score: ${tc.bestMatchScore.toFixed(4)})`);
+            } else {
+              console.log(`  ❌ MISCLASSIFIED: "${tc.input}" matched to "${matchedCategory}" instead of "${tc.expectedCategory}" (Scores: ${tc.bestMatchCategory}=${tc.bestMatchScore.toFixed(4)}, ${tc.expectedCategory}=${tc.scores.find(s => s.category === tc.expectedCategory)?.score.toFixed(4)})`);
+            }
+          }
+        }
+      });
+      if (failedInThreshold === 0) {
+        console.log("  ✨ Perfect! No failures.");
+      }
+    });
+
+    // Suggest optimal threshold
+    const bestThresholdObj = thresholdResults.reduce((best, curr) => curr.passed > best.passed ? curr : best, thresholdResults[0]);
+    console.log("\n=============================================================");
+    console.log(`🏆 RECOMMENDED THRESHOLD: ${bestThresholdObj.threshold.toFixed(2)}`);
+    console.log(`📊 Performance: ${bestThresholdObj.passed}/${TEST_CASES.length} Correct (${((bestThresholdObj.passed/TEST_CASES.length)*100).toFixed(0)}%)`);
     console.log("=============================================================\n");
 
   } catch (error: any) {
