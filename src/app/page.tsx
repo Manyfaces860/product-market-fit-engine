@@ -69,42 +69,56 @@ export default function LandingPage() {
   }, []);
 
   // 2. Interactive Search Mock Typing Loop
-  useEffect(() => {
-    const fullText = HOMEPAGE_COPY.features.list[0]?.interactiveInput || 'flaky microfrontend compile failures';
+useEffect(() => {
+  const fullText = HOMEPAGE_COPY.features.list[0]?.interactiveInput || 'flaky microfrontend compile failures';
+  let timer: ReturnType<typeof setTimeout>;
+  let cancelled = false;
+
+  const runSearchSimulation = () => {
+    if (cancelled) return;
+    setSearchMockPhase('typing');
+    setSearchText('');
+
     let index = 0;
-    let timer: NodeJS.Timeout;
 
-    const runSearchSimulation = () => {
-      setSearchMockPhase('typing');
-      setSearchText('');
-      index = 0;
+    const typeChar = () => {
+      if (cancelled) return;
 
-      const typeChar = () => {
-        if (index < fullText.length) {
-          setSearchText(prev => prev + fullText[index]);
-          index++;
-          timer = setTimeout(typeChar, 40);
-        } else {
-          // Finished typing, trigger scan!
-          timer = setTimeout(() => {
-            setSearchMockPhase('scanning');
-            // Scan for 1.5 seconds, then show match!
-            timer = setTimeout(() => {
-              setSearchMockPhase('matched');
-              // Hold match for 4 seconds, then repeat!
-              timer = setTimeout(runSearchSimulation, 4000);
-            }, 1500);
-          }, 800);
-        }
-      };
-      
-      // Start typing delay
-      timer = setTimeout(typeChar, 1000);
+      if (index < fullText.length) {
+        const char = fullText[index];
+        index++;
+        setSearchText(prev => prev + char);
+        timer = setTimeout(typeChar, 40);
+        return;
+      }
+
+      // Finished typing, trigger scan!
+      timer = setTimeout(() => {
+        if (cancelled) return;
+        setSearchMockPhase('scanning');
+
+        // Scan for 1.5 seconds, then show match!
+        timer = setTimeout(() => {
+          if (cancelled) return;
+          setSearchMockPhase('matched');
+
+          // Hold match for 4 seconds, then repeat!
+          timer = setTimeout(runSearchSimulation, 4000);
+        }, 1500);
+      }, 800);
     };
 
-    runSearchSimulation();
-    return () => clearTimeout(timer);
-  }, []);
+    // Start typing delay
+    timer = setTimeout(typeChar, 1000);
+  };
+
+  runSearchSimulation();
+
+  return () => {
+    cancelled = true;
+    clearTimeout(timer);
+  };
+}, []);
 
   // 3. Interactive Submit Lifecycle Stage Loop
   useEffect(() => {
