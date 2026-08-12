@@ -196,18 +196,11 @@ useEffect(() => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.25, duration: 0.6 }}
         >
-          <a 
-            href="https://maidensail.com/startup/needboard" 
-            rel="dofollow" 
-            className="inline-flex items-center px-4 py-2.5 rounded-2xl border border-white/5 bg-slate-950/65 hover:border-brand-amber/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] backdrop-blur-xl transition-all duration-300 group cursor-pointer"
-          >
-            <img 
-              src="https://maidensail.com/badge/needboard.svg" 
-              alt="Listed on Maidensail" 
-              height="28" 
-              className="opacity-75 group-hover:opacity-100 transition-opacity duration-300"
-            />
-          </a>
+          <div className="inline-flex items-center px-4 py-2 rounded-2xl border border-white/5 bg-slate-950/65 hover:border-brand-amber/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] backdrop-blur-xl transition-all duration-300 cursor-pointer">
+            <a href="https://maidensail.com/startup/needboard" rel="dofollow">
+              <img src="https://maidensail.com/badge/needboard.svg" alt="Listed on Maidensail" height="36" />
+            </a>
+          </div>
         </motion.div>
 
         {/* Hero CTAs */}
