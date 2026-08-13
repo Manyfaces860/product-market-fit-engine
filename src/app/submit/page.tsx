@@ -629,7 +629,7 @@ export default function Home() {
           <PageScanner message="Scanning database signals..." size="md" />
         ) : (
           <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-xs uppercase tracking-widest">
-            No active collective signals found.
+            No reports yet in this space. Be the first voice — every early report gets full visibility once builders start browsing.
           </div>
         )}
       </div>

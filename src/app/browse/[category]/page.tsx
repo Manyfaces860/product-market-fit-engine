@@ -6,6 +6,7 @@ import { ArrowLeft, Layers, ChevronRight, TrendingUp, Users, AlertTriangle } fro
 import { motion } from 'framer-motion';
 import { APP_COPY } from '@/lib/config/copy';
 import { PageScanner } from '@/components/Loader';
+import staticCategories from '@/lib/ai/static-categories';
 
 interface Cluster {
   id: string;
@@ -19,6 +20,12 @@ interface Cluster {
 
 export default function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
   const { category } = use(params);
+  let categoryDes;
+  for (let i = 0 ; i < staticCategories.length ; i++) {
+    if (staticCategories[i].id == category) {
+      categoryDes = staticCategories[i].label
+    }
+  }
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -162,9 +169,9 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
         </div>
       ) : (
         <div className="text-center py-24 border border-dashed border-white/5 rounded-2xl max-w-xl mx-auto p-8">
-          <p className="font-mono text-sm text-slate-400">No active clusters in this category yet.</p>
+          <p className="font-mono text-sm text-slate-400">NeedBoard just opened here. Report the first "{categoryDes}" problem and put this vertical on the map.</p>
           <Link
-            href="/"
+            href="/submit"
             className="inline-block mt-6 font-mono text-xs font-bold uppercase bg-amber-500 text-slate-950 px-4 py-2 rounded-lg hover:bg-amber-600 transition-all"
           >
             Submit First Problem

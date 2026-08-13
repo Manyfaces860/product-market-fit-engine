@@ -108,7 +108,7 @@ export default function BrowsePage() {
           <p className="font-mono text-sm text-slate-400">No active categories found.</p>
           <p className="text-xs text-slate-500 mt-2">Submit a problem on the home page or click "Seed Data" to populate sample clusters.</p>
           <Link
-            href="/"
+            href="/submit"
             className="inline-block mt-6 font-mono text-xs font-bold uppercase bg-amber-500 text-slate-950 px-4 py-2 rounded-lg hover:bg-amber-600 transition-all"
           >
             Submit First Problem

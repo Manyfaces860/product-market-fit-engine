@@ -125,7 +125,7 @@ export default function Header() {
                 </SignInButton>
                 <SignUpButton>
                   <button className="font-mono text-xs uppercase tracking-widest bg-gradient-to-r from-brand-amber to-brand-coral hover:opacity-90 text-slate-950 font-bold px-4 py-1.5 rounded transition-all active:scale-95 cursor-pointer shadow-lg shadow-brand-amber/10">
-                    Join
+                    Quick Frustration Check
                   </button>
                 </SignUpButton>
               </Show>

@@ -320,7 +320,7 @@ useEffect(() => {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <Cpu className="h-4 w-4 animate-spin" /> Scanning HNSW MongoDB Vector Index...
+                    <Cpu className="h-4 w-4 animate-spin" /> Finding anything related to your pain-point...
                   </motion.div>
                 )}
 
@@ -333,7 +333,7 @@ useEffect(() => {
                     exit={{ opacity: 0 }}
                   >
                     <div className="flex items-center justify-between text-[9px] text-teal-400 font-bold uppercase tracking-wider">
-                      <span>Matched Problem Centroid</span>
+                      <span>Matched Problem</span>
                       <span className="bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">{HOMEPAGE_COPY.features.list[0]?.interactiveScore}</span>
                     </div>
                     <p className="text-xs text-slate-200 leading-normal italic">&quot;{HOMEPAGE_COPY.features.list[0]?.interactiveMatch}&quot;</p>
@@ -516,7 +516,7 @@ useEffect(() => {
                 href="/submit"
                 className="font-mono text-[10px] tracking-widest uppercase font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1.5 transition-colors"
               >
-                Launch Problem Seeder <ArrowRight className="h-3 w-3" />
+                Report Your First Problem <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
           </div>
@@ -549,7 +549,7 @@ useEffect(() => {
                 href="/browse"
                 className="font-mono text-[10px] tracking-widest uppercase font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1.5 transition-colors"
               >
-                Scan Validated Niches <ArrowRight className="h-3 w-3" />
+                Browse Open Problems <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
           </div>
@@ -616,7 +616,7 @@ useEffect(() => {
           <PageScanner message="Scanning database signals..." size="md" /> // 🚀 Stunning centered loader!
         ) : (
           <div className="text-center py-16 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-xs uppercase tracking-widest">
-            No active collective signals found. Run seeder to get started!
+            Nobody's reported a problem yet — yours could be the first thing builders see. 
           </div>
         )}
       </section>

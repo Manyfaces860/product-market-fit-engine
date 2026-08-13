@@ -18,7 +18,7 @@ export const APP_COPY = {
     inputPlaceholder: "Describe a product gap, software issue, or frustration you encountered (e.g., inventory counts get out of sync when selling on Shopify and Etsy)...",
     characterWarning: "Input exceeds limits. Please shorten it.",
     inputContextHelp: "Be as detailed as possible to help our system group your voice with others facing the same issue.",
-    submitButtonText: "Analyze Frustration",
+    submitButtonText: "Submit Problem",
     submitButtonLoading: "Analyzing...",
     signInToSubmitText: "Sign In to Submit",
     

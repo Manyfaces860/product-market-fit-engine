@@ -29,7 +29,7 @@ export const HOMEPAGE_COPY = {
         badge: "01 / FIND YOUR PROBLEM, INSTANTLY",
         title: "Search by Meaning, Not Just Words",
         desc: "You shouldn't have to guess the 'right' words to find a problem that already exists. Describe your frustration in your own words, and NeedBoard understands what you mean, not just what you typed — so 'flaky E2E script' finds the same group as 'Cypress tests failing randomly.' This means less duplicate reporting for you, and a clearer, bigger signal for builders.",
-        interactiveTitle: "Live Search Mockup",
+        interactiveTitle: "How Search Will Work",
         interactiveInput: "flaky microfrontend hot reloading compile failures",
         interactiveMatch: "Flaky local testing setups and slow hot-reload compilation times",
         interactiveScore: "Match Score: 94%"
@@ -51,7 +51,7 @@ export const HOMEPAGE_COPY = {
         badge: "03 / THE BEST SOLUTIONS RISE TO THE TOP",
         title: "Real Users Decide What's Actually Good",
         desc: "Once builders start posting solutions, the community takes over. People who've faced the problem can upvote, downvote, and leave honest reviews on what actually worked. No paid placements, no marketing spend deciding the winner — just real feedback from people who needed a fix, separating genuinely useful tools from the noise.",
-        interactiveTitle: "Live Voting Interface Mock",
+        interactiveTitle: "How Voting Will Work",
         solName: "StockFlow Multi-Sync",
         solDesc: "Real-time webhook-based multi-channel inventory synchronization that updates stock levels under 1 second.",
         upvotesCount: "+12",
