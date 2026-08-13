@@ -3,13 +3,30 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
-import { ArrowLeft, Users, Check, Flame, Share2, Plus, AlertTriangle, ArrowUp, ExternalLink, X, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Users, Check, Flame, Share2, Plus, AlertTriangle, ArrowUp, ExternalLink, X, Pencil, Trash2, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_COPY } from '@/lib/config/copy';
 import { PageScanner, ButtonSpinner } from '@/components/Loader';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import AlertModal from '@/components/AlertModal';
 import ConfirmModal from '@/components/ConfirmModal';
+
+// Custom inline SVG Github Icon to prevent version mismatches in Lucide React 🚀
+const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    width="12" 
+    height="12" 
+    stroke="currentColor" 
+    strokeWidth="2.5" 
+    fill="none" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={props.className}
+  >
+    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+  </svg>
+);
 
 interface Solution {
   id: string;
@@ -18,6 +35,9 @@ interface Solution {
   description: string;
   builderId: string;
   builderName: string;
+  builderBio?: string;       // 🚀 Custom Builder Bio Tagline
+  builderGithub?: string;    // 🚀 Custom Builder GitHub Link
+  builderWebsite?: string;   // 🚀 Custom Builder Portfolio Link
   upvotes: number;
   votesUserIds: string[];
   downvotedUserIds?: string[];
@@ -47,6 +67,7 @@ interface Cluster {
   createdAt: string;
   lastUpdatedAt: string;
   userIds?: string[];
+  creatorId?: string;
   solutions?: Solution[];
 }
 
@@ -60,6 +81,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const voted = !!(userId && cluster?.userIds?.includes(userId));
+  const isCreator = !!(userId && cluster?.creatorId === userId);
 
   const sanitizeError = (error: any, defaultMessage: string): string => {
     const msg = error?.message || '';
@@ -648,8 +670,35 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                                     </div>
                                   )}
                                 </div>
-                                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest block">
-                                  Listed by {sol.builderName}
+                                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest block flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <span>Listed by {sol.builderName}</span>
+                                  {sol.builderBio && (
+                                    <span className="text-slate-400 italic normal-case font-sans">
+                                      ({sol.builderBio})
+                                    </span>
+                                  )}
+                                  {sol.builderGithub && (
+                                    <a 
+                                      href={sol.builderGithub} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="text-slate-500 hover:text-slate-300 p-0.5 transition-colors"
+                                      title="Builder GitHub Profile"
+                                    >
+                                      <GithubIcon className="h-3 w-3 inline -mt-0.5" />
+                                    </a>
+                                  )}
+                                  {sol.builderWebsite && (
+                                    <a 
+                                      href={sol.builderWebsite} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="text-slate-500 hover:text-slate-300 p-0.5 transition-colors"
+                                      title="Builder Personal Website"
+                                    >
+                                      <Globe className="h-3 w-3 inline -mt-0.5" />
+                                    </a>
+                                  )}
                                 </span>
                               </div>
                             </div>
@@ -910,111 +959,136 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           
           {/* Me Too Interactive card */}
           <div className="p-6 bg-slate-900/80 border-glow border rounded-2xl shadow-xl backdrop-blur-xl relative">
-            <div className="absolute top-0 right-0 p-2.5">
-              <Flame className="h-5 w-5 text-amber-500 animate-pulse" />
-            </div>
-
-            <h3 className="text-lg font-bold text-slate-100 font-sans">
-              {APP_COPY.clusterDetail.meTooTitle}
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              {APP_COPY.clusterDetail.meTooDesc}
-            </p>
-
-            <div className="mt-6">
-              <AnimatePresence mode="wait">
-                {!voted ? (
-                  <motion.div key="vote-actions" className="space-y-4">
-                    
-                    {!showPhrasingInput ? (
-                      <div className="space-y-2">
-                        <button
-                          onClick={() => {
-                            // Direct quick Me Too
-                            handleMeTooSubmit({ preventDefault: () => {} } as any);
-                          }}
-                          disabled={submitting}
-                          className="w-full h-11 bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 font-mono text-xs uppercase tracking-wider font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                        >
-                          {submitting ? (
-                            <span className="flex items-center gap-2">
-                              <ButtonSpinner size="sm" />
-                              {APP_COPY.clusterDetail.meTooButtonLoading}
-                            </span>
-                          ) : (
-                            APP_COPY.clusterDetail.meTooButtonText
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setShowPhrasingInput(true)}
-                          className="w-full text-center font-mono text-[10px] text-slate-400 hover:text-slate-100 uppercase tracking-widest cursor-pointer py-1"
-                        >
-                          + Add custom phrasing variant
-                        </button>
-                      </div>
-                    ) : (
-                      <motion.form 
-                        onSubmit={handleMeTooSubmit}
-                        className="space-y-3"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                      >
-                        <textarea
-                          value={customPhrasing}
-                          onChange={(e) => setCustomPhrasing(e.target.value)}
-                          placeholder={APP_COPY.clusterDetail.meTooInputPlaceholder}
-                          className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                          rows={3}
-                          required
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setShowPhrasingInput(false)}
-                            className="w-1/2 font-mono text-[10px] uppercase text-slate-400 py-2 border border-white/5 rounded-lg hover:text-slate-100 cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            disabled={submitting || customPhrasing.trim() === ''}
-                            className="w-1/2 h-9 bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 font-mono text-[10px] uppercase tracking-wider font-bold rounded-lg active:scale-95 transition-all flex items-center justify-center cursor-pointer"
-                          >
-                            {submitting ? 'Submitting...' : 'Add & Publish'}
-                          </button>
-                        </div>
-                      </motion.form>
-                    )}
-
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    key="voted-success" 
-                    className="p-4 bg-teal-500/10 border border-teal-500/25 rounded-xl text-center text-teal-400"
-                    initial={{ scale: 0.95 }}
-                    animate={{ scale: 1 }}
-                  >
+            {isCreator ? (
+              <>
+                <div className="absolute top-0 right-0 p-2.5">
+                  <Flame className="h-5 w-5 text-teal-500" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-100 font-sans">
+                  Your Problem Group
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  You are the original reporter of this problem cluster.
+                </p>
+                <div className="mt-6">
+                  <div className="p-4 bg-teal-500/10 border border-teal-500/25 rounded-xl text-center text-teal-400">
                     <Check className="mx-auto h-6 w-6 text-teal-400 mb-1" />
-                    <span className="font-mono text-xs uppercase font-bold block">Voice Logged</span>
+                    <span className="font-mono text-xs uppercase font-bold block">Ownership Verified</span>
                     <span className="text-[10px] text-slate-300 leading-normal block mt-1">
-                      {APP_COPY.clusterDetail.meTooSuccess}
+                      You seeded this group. Your original phrasing has already been logged.
                     </span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="absolute top-0 right-0 p-2.5">
+                  <Flame className="h-5 w-5 text-amber-500 animate-pulse" />
+                </div>
 
-              {/* Local Me Too action error panel */}
-              {meTooError && (
-                <motion.div 
-                  className="mt-4 p-3.5 bg-red-950/40 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-300 text-[10px] text-left"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" />
-                  <span>{meTooError}</span>
-                </motion.div>
-              )}
-            </div>
+                <h3 className="text-lg font-bold text-slate-100 font-sans">
+                  {APP_COPY.clusterDetail.meTooTitle}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {APP_COPY.clusterDetail.meTooDesc}
+                </p>
+
+                <div className="mt-6">
+                  <AnimatePresence mode="wait">
+                    {!voted ? (
+                      <motion.div key="vote-actions" className="space-y-4">
+                        
+                        {!showPhrasingInput ? (
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => {
+                                // Direct quick Me Too
+                                handleMeTooSubmit({ preventDefault: () => {} } as any);
+                              }}
+                              disabled={submitting}
+                              className="w-full h-11 bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 font-mono text-xs uppercase tracking-wider font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              {submitting ? (
+                                <span className="flex items-center gap-2">
+                                  <ButtonSpinner size="sm" />
+                                  {APP_COPY.clusterDetail.meTooButtonLoading}
+                                </span>
+                              ) : (
+                                APP_COPY.clusterDetail.meTooButtonText
+                              )}
+                            </button>
+                            <button
+                              onClick={() => setShowPhrasingInput(true)}
+                              className="w-full text-center font-mono text-[10px] text-slate-400 hover:text-slate-100 uppercase tracking-widest cursor-pointer py-1"
+                            >
+                              + Add custom phrasing variant
+                            </button>
+                          </div>
+                        ) : (
+                          <motion.form 
+                            onSubmit={handleMeTooSubmit}
+                            className="space-y-3"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                          >
+                            <textarea
+                              value={customPhrasing}
+                              onChange={(e) => setCustomPhrasing(e.target.value)}
+                              placeholder={APP_COPY.clusterDetail.meTooInputPlaceholder}
+                              className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                              rows={3}
+                              required
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setShowPhrasingInput(false)}
+                                className="w-1/2 font-mono text-[10px] uppercase text-slate-400 py-2 border border-white/5 rounded-lg hover:text-slate-100 cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={submitting || customPhrasing.trim() === ''}
+                                className="w-1/2 h-9 bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 font-mono text-[10px] uppercase tracking-wider font-bold rounded-lg active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                              >
+                                {submitting ? 'Submitting...' : 'Add & Publish'}
+                              </button>
+                            </div>
+                          </motion.form>
+                        )}
+
+                      </motion.div>
+                    ) : (
+                      <motion.div 
+                        key="voted-success" 
+                        className="p-4 bg-teal-500/10 border border-teal-500/25 rounded-xl text-center text-teal-400"
+                        initial={{ scale: 0.95 }}
+                        animate={{ scale: 1 }}
+                      >
+                        <Check className="mx-auto h-6 w-6 text-teal-400 mb-1" />
+                        <span className="font-mono text-xs uppercase font-bold block">Voice Logged</span>
+                        <span className="text-[10px] text-slate-300 leading-normal block mt-1">
+                          {APP_COPY.clusterDetail.meTooSuccess}
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Local Me Too action error panel */}
+                  {meTooError && (
+                    <motion.div 
+                      className="mt-4 p-3.5 bg-red-950/40 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-300 text-[10px] text-left"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" />
+                      <span>{meTooError}</span>
+                    </motion.div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Share metadata */}

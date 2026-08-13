@@ -13,8 +13,10 @@ export interface MongoClusterDocument {
   categoryDescription: string; // Dynamic description of this category niche
   canonicalText: string;       // Main conceptual problem title / headline of the cluster
   memberCount: number;         // Total support counts (Me Too voices)
+  variantCount?: number;       // 🚀 Total phrasing variants count (for ultra-fast lists without loading arrays!)
   sampleVariants: string[];    // Uncapped array of crowdsourced phrasing variants
   userIds?: string[];          // Clerk User IDs of co-sign supports (idempotency)
+  creatorId?: string;          // 🚀 Clerk User ID of the original reporter who created/seeded the cluster
   createdAt: string;           // Timestamp
   lastUpdatedAt: string;       // Timestamp
   
@@ -35,6 +37,7 @@ export interface MongoProblemDocument {
   clusterId: string;           // Relational link pointing back to MongoClusterDocument.id
   category: string;            // Category alignment key (e.g., "ai-operations")
   rawText: string;             // Original user phrasing text
+  userId: string;              // 🚀 Clerk User ID of the reporter who submitted this phrase
   createdAt: string;           // Timestamp
   
   // 🚀 Optional Vector field
@@ -48,13 +51,13 @@ export interface MongoProblemDocument {
 export interface MongoSolutionDocument {
   _id?: ObjectId;
   id: string;                  // Unique Solution ID (e.g., "sol_12345")
-  clusterId: string;           // Relational link pointing back to MongoClusterDocument.id
+  clusterId: string;           // Relational link pointing back to MongoClusterDocument.id it solves
   name: string;                // Product name
   url: string;                 // Product web link URL (XSS protocol protected)
   description: string;         // Description copy explaining how it solves the pain points
   builderId: string;           // Clerk User ID of the listing builder
   builderName: string;         // Name of the listing builder
-  upvotes: number;             // Upvote score counter (net score)
+  upvotes: number;             // Upvote score counter (net score: Upvotes - Downvotes)
   votesUserIds: string[];      // Clerk User IDs of upvoters (idempotency upvote guard)
   downvotedUserIds?: string[]; // Clerk User IDs of downvoters (idempotency downvote guard) 🛡️
   createdAt: string;           // Timestamp
@@ -75,6 +78,24 @@ export interface MongoReviewDocument {
   rating: number;              // 1 to 5 star rating
   text: string;                // Written review feedback comment
   createdAt: string;           // Timestamp
+}
+
+/**
+ * 👤 MongoDB "users" Collection Document Schema
+ * Manages user roles, permission perks, and customizable builder profiles.
+ */
+export interface MongoUserDocument {
+  _id?: ObjectId;
+  userId: string;              // Clerk User ID (Primary Query Key)
+  email: string;               // User's primary email address
+  name: string;                // User's display name
+  role: 'reporter' | 'builder' | 'admin'; // User Role / Perks Tier
+  createdAt: string;           // Join date
+  
+  // 🏆 Custom Builder Profile Perks (Unlocked when promoted to Builder!)
+  customBio?: string;          // Founder/builder tagline/bio
+  githubUrl?: string;          // Link to builder's GitHub
+  websiteUrl?: string;         // Link to builder's portfolio / landing page
 }
 
 /**

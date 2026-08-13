@@ -7,7 +7,7 @@
 
 export const APP_COPY = {
   global: {
-    appName: "P-X1",
+    appName: "NeedBoard",
     tagline: "Problem-Market Fit Engine",
   },
 
@@ -18,7 +18,7 @@ export const APP_COPY = {
     inputPlaceholder: "Describe a product gap, software issue, or frustration you encountered (e.g., inventory counts get out of sync when selling on Shopify and Etsy)...",
     characterWarning: "Input exceeds limits. Please shorten it.",
     inputContextHelp: "Be as detailed as possible to help our system group your voice with others facing the same issue.",
-    submitButtonText: "Analyze Frustration",
+    submitButtonText: "Submit Problem",
     submitButtonLoading: "Analyzing...",
     signInToSubmitText: "Sign In to Submit",
     
@@ -46,7 +46,7 @@ export const APP_COPY = {
   search: {
     title: "Validate Your Product Idea",
     subtitle: "Search across real customer complaints to see if people actually struggle with the problem you want to solve.",
-    inputPlaceholder: "Search for problems or frustrations (e.g. monorepo, calendar sync, IoT setup)...",
+    inputPlaceholder: "Search for problems or frustrations (e.g. monorepo, calendar sync)",
     searchingText: "Searching databases...",
     resultsTitle: "Matching Pain Points",
     noResults: "We couldn't find any active groups matching that search. This might be a brand new niche to seed!",

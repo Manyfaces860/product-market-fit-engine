@@ -43,3 +43,6 @@ p-x1-arch.md
 resume.sh
 .idea/
 proj-description.md
+test-results
+playwright-report
+ete-testing.md

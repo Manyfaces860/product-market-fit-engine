@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { embeddingService } from '@/lib/ai';
 import { upsertCluster, insertProblem, wipePineconeIndex, getDb } from '@/lib/mongodb';
 import { MongoClusterDocument as ClusterRecord, MongoProblemDocument as ProblemRecord } from '@/lib/models/schema';
@@ -115,10 +116,11 @@ export async function GET(req: NextRequest) {
 
     // 1. Establish MongoDB connection and flush existing seeded records
     const db = await getDb();
-    console.log('[Seed] Connected to MongoDB. Purging existing seeded solutions/reviews/clusters...');
+    console.log('[Seed] Connected to MongoDB. Purging existing seeded solutions/reviews/clusters/users...');
     await db.collection('solutions').deleteMany({ id: { $regex: /^sol_seed_/ } });
     await db.collection('reviews').deleteMany({ solutionId: { $regex: /^sol_seed_/ } });
     await db.collection('clusters').deleteMany({ id: { $regex: /^cluster_seed_/ } });
+    await db.collection('users').deleteMany({ userId: { $regex: /^user_seed_/ } });
 
     // Flush Pinecone / local replica first to guarantee a true clean-slate seed! 🚀
     console.log('[Seed] Flushing Pinecone index...');
@@ -168,6 +170,7 @@ export async function GET(req: NextRequest) {
         memberCount: item.memberCount,
         sampleVariants: item.sampleVariants,
         userIds: [],
+        creatorId: 'user_seed_reporter_999',
         createdAt: nowStr,
         lastUpdatedAt: nowStr,
       };
@@ -184,6 +187,7 @@ export async function GET(req: NextRequest) {
           rawText: variantText,
           category: item.category,
           clusterId: clusterId,
+          userId: 'user_seed_reporter_999', // 🚀 Relate seeded problems directly to our mock reporter!
           createdAt: nowStr,
         };
 
@@ -228,9 +232,66 @@ export async function GET(req: NextRequest) {
       seededCount++;
     }
 
+    // 5. Seed realistic mock user profiles and roles in MongoDB! 👤
+    console.log('[Seed] Seeding mock user accounts and roles...');
+    const seedUsers = [
+      {
+        userId: 'user_seed_reporter_999',
+        email: 'reporter@p-x1.dev',
+        name: 'Jane Dev',
+        role: 'reporter',
+        createdAt: nowStr,
+      },
+      {
+        userId: 'user_seed_builder_123',
+        email: 'builder@p-x1.dev',
+        name: 'Alex Rivera',
+        role: 'builder',
+        createdAt: nowStr,
+        customBio: 'SaaS Founder and DX enthusiast. Building next-generation developer tooling.',
+        githubUrl: 'https://github.com/alex-rivera',
+        websiteUrl: 'https://alexrivera.dev',
+      }
+    ];
+
+    for (const u of seedUsers) {
+      await db.collection('users').updateOne(
+        { userId: u.userId },
+        { $set: u },
+        { upsert: true }
+      );
+    }
+
+    // Auto-discover the active logged-in user and seed them as an active Reporter in MongoDB!
+    try {
+      const { userId: activeUserId } = await auth();
+      if (activeUserId) {
+        const activeUser = await currentUser();
+        const activeName = activeUser ? `${activeUser.firstName || ''} ${activeUser.lastName || ''}`.trim() : 'Active Reporter';
+        const activeEmail = activeUser?.emailAddresses[0]?.emailAddress || 'active@p-x1.dev';
+
+        await db.collection('users').updateOne(
+          { userId: activeUserId },
+          { 
+            $set: {
+              userId: activeUserId,
+              email: activeEmail,
+              name: activeName,
+              role: 'reporter', // Default starting role
+              createdAt: nowStr,
+            }
+          },
+          { upsert: true }
+        );
+        console.log(`[Seed] Active user ${activeUserId} initialized in MongoDB users collection.`);
+      }
+    } catch (authError) {
+      console.warn('[Seed] Could not resolve active Clerk session. Mock seeds are still fully loaded.', authError);
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Successfully seeded ${seededCount} builder-focused clusters with their raw user problems (Pinecone) and relational product solutions/reviews (MongoDB)!`,
+      message: `Successfully seeded ${seededCount} builder-focused clusters, relational solutions, and customized mock users/roles!`,
     });
   } catch (error: any) {
     console.error('Error seeding database index layers:', error);

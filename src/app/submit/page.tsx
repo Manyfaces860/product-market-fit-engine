@@ -227,7 +227,7 @@ export default function Home() {
       setInputText('');
       setDraft(null);
     } catch (err: any) {
-      console.error(err);
+      // console.error(err);
       setError(sanitizeError(err, 'We could not complete publishing.'));
     } finally {
       setSubmitting(false);
@@ -376,7 +376,7 @@ export default function Home() {
                               type="button"
                               className="w-full md:w-auto h-12 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 px-6 rounded-xl active:scale-95 transition-all cursor-pointer"
                           >
-                            {APP_COPY.home.signInToSubmitText}
+                            {APP_COPY.home.submitButtonText}
                           </button>
                         </SignInButton>
                       </Show>
@@ -629,7 +629,7 @@ export default function Home() {
           <PageScanner message="Scanning database signals..." size="md" />
         ) : (
           <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-xs uppercase tracking-widest">
-            No active collective signals found.
+            No reports yet in this space. Be the first voice — every early report gets full visibility once builders start browsing.
           </div>
         )}
       </div>

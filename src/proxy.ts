@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 // Protect the API routes that perform heavy LLM calculations
 const isProtectedRoute = createRouteMatcher([
@@ -8,6 +9,15 @@ const isProtectedRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
+    const {userId} = await auth();
+    if (!userId) {
+      if (req.nextUrl.pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          {error : "Unauthorized", message: "you must be signed in to perform searches"},
+          {status: 401}
+        )
+      }
+    }
     await auth.protect();
   }
 });

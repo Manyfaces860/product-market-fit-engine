@@ -46,6 +46,12 @@ export default function SearchPage() {
       if (!res.ok) {
         throw new Error(data.message || 'An error occurred during semantic matching.');
       }
+      const contentType = res.headers.get("content-type");
+
+      if (contentType && !contentType.includes("application/json")) {
+        console.log("error happend without sign in")
+        throw new Error("You must be signed in to perform searches.");
+      }
 
       setResults(data);
     } catch (err: any) {
@@ -75,7 +81,7 @@ export default function SearchPage() {
       <div className="max-w-2xl mx-auto mb-16">
         <form 
           onSubmit={handleSearch}
-          className="relative p-1.5 bg-slate-900/60 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center"
+          className="relative p-1.5 bg-slate-900/60 border border-white/10 focus-within:border-teal-500/50 hover:border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center transition-all duration-300 focus-within:shadow-[0_0_30px_rgba(20,184,166,0.15)] focus-within:bg-slate-900/80"
         >
           <div className="flex-grow flex items-center pl-3">
             <Search className="h-5 w-5 text-slate-500 shrink-0" />
@@ -93,7 +99,7 @@ export default function SearchPage() {
             <button
               type="submit"
               disabled={loading || query.trim() === '' || isQueryTooLong}
-              className="h-10 px-5 font-mono text-[10px] tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 rounded-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50 disabled:pointer-events-none"
+              className="h-10 w-28 shrink-0 font-mono text-[10px] tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 rounded-lg active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1 disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? APP_COPY.search.searchingText : 'Search'}
             </button>
@@ -101,9 +107,9 @@ export default function SearchPage() {
             <SignInButton mode="modal">
               <button
                 type="button"
-                className="h-10 px-5 font-mono text-[10px] tracking-wider uppercase font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                className="h-10 w-30 shrink-0 font-mono text-[10px] tracking-wider uppercase font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1"
               >
-                Sign In to Search
+                Search
               </button>
             </SignInButton>
           )}
@@ -158,7 +164,7 @@ export default function SearchPage() {
               </h3>
               
               <div className="space-y-4">
-                {results.map((cluster) => {
+                {results && results.map((cluster) => {
                   // Display match score percentage
                   const similarityPct = cluster.score ? Math.round(cluster.score * 100) : 0;
                   
