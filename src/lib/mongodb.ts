@@ -10,7 +10,7 @@ import {
 import staticCategories from './ai/static-categories';
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB = process.env.MONGODB_DB_PROD || "needboard-dev";
+const MONGODB_DB = process.env.MONGODB_DB_TEST || "needboard-test";
 const SIMILARITY_THRESHOLD = Number(process.env.NEXT_PUBLIC_SIMILARITY_THRESHOLD || 0.70);
 
 if (process.env.NODE_ENV !== 'test' && !MONGODB_URI) {

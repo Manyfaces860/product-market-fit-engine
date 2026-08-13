@@ -3,7 +3,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB = process.env.MONGODB_DB || 'p-x1';
+const MONGODB_DB = process.env.MONGODB_DB_TEST || 'p-x1';
 
 async function run() {
   if (!MONGODB_URI) {
