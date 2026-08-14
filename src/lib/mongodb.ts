@@ -10,7 +10,9 @@ import {
 import staticCategories from './ai/static-categories';
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB = process.env.MONGODB_DB_TEST || "needboard-test";
+const MONGODB_DB = ((process.env.NEXT_PUBLIC_E2E_TESTING === 'true' || process.env.NODE_ENV === 'test') && process.env.MONGODB_DB_TEST)
+  ? process.env.MONGODB_DB_TEST
+  : (process.env.MONGODB_DB_TEST || "needboard-test");
 const SIMILARITY_THRESHOLD = Number(process.env.NEXT_PUBLIC_SIMILARITY_THRESHOLD || 0.70);
 
 if (process.env.NODE_ENV !== 'test' && !MONGODB_URI) {
@@ -365,6 +367,7 @@ export async function searchClusters(queryEmbedding: number[], limit = 5): Promi
           }
         }
       ]).toArray();
+      console.log(results)
     } else {
       // 🛡️ In-memory Cosine Similarity fallback for local/offline dev!
       results = await db.collection('clusters').aggregate([
@@ -378,6 +381,7 @@ export async function searchClusters(queryEmbedding: number[], limit = 5): Promi
         }
       ]).toArray();
     }
+    console.log("outside", results)
 
     return results.filter((cluster: any) => cluster.score >= SIMILARITY_THRESHOLD)
       .map((cluster: any) => ({

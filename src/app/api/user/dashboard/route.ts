@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@/lib/clerk-server';
 import { getDb, getUserByClerkId, upsertUser } from '@/lib/mongodb';
 import { ROLE_PERKS_CONFIG } from '@/lib/config/perks';
 

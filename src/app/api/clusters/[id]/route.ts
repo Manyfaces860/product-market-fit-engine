@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/clerk-server';
 import { logMetric, getDb, getClusterById, getAdjacentClusters } from '@/lib/mongodb';
 import { createResponse } from '@/lib/response';
 

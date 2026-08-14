@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/clerk-server';
 import { embeddingService } from '@/lib/ai';
 import { searchClusters, logMetric } from '@/lib/mongodb';
 import { validateQuery } from '@/lib/validation';
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     // Retrieve semantically matching clusters
     const results = await searchClusters(queryEmbedding, 8);
-
+    console.log(results)
     return createResponse(results);
   } catch (error: any) {
     console.error('Error in GET /api/search:', error);

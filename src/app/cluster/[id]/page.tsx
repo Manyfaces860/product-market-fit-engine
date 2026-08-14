@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@/lib/clerk';
 import { ArrowLeft, Users, Check, Flame, Share2, Plus, AlertTriangle, ArrowUp, ExternalLink, X, Pencil, Trash2, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_COPY } from '@/lib/config/copy';
@@ -546,6 +546,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                 </p>
               </div>
               <button
+                data-testid="add-solution-button"
                 onClick={() => {
                   if (!userId) {
                     setAlertModal({
@@ -1001,6 +1002,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                         {!showPhrasingInput ? (
                           <div className="space-y-2">
                             <button
+                              data-testid="me-too-button"
                               onClick={() => {
                                 // Direct quick Me Too
                                 handleMeTooSubmit({ preventDefault: () => {} } as any);
@@ -1018,6 +1020,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                               )}
                             </button>
                             <button
+                              data-testid="custom-phrasing-toggle"
                               onClick={() => setShowPhrasingInput(true)}
                               className="w-full text-center font-mono text-[10px] text-slate-400 hover:text-slate-100 uppercase tracking-widest cursor-pointer py-1"
                             >
@@ -1032,6 +1035,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                             animate={{ opacity: 1, height: 'auto' }}
                           >
                             <textarea
+                              data-testid="custom-phrasing-textarea"
                               value={customPhrasing}
                               onChange={(e) => setCustomPhrasing(e.target.value)}
                               placeholder={APP_COPY.clusterDetail.meTooInputPlaceholder}
@@ -1048,6 +1052,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                                 Cancel
                               </button>
                               <button
+                                data-testid="me-too-submit-button"
                                 type="submit"
                                 disabled={submitting || customPhrasing.trim() === ''}
                                 className="w-1/2 h-9 bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 font-mono text-[10px] uppercase tracking-wider font-bold rounded-lg active:scale-95 transition-all flex items-center justify-center cursor-pointer"

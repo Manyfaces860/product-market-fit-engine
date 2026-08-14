@@ -6,7 +6,7 @@ import { Search, ArrowRight, AlertTriangle, ChevronRight, HelpCircle } from 'luc
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_COPY } from '@/lib/config/copy';
 import { PageScanner } from '@/components/Loader';
-import { useAuth, SignInButton } from '@clerk/nextjs';
+import { useAuth, SignInButton } from '@/lib/clerk';
 
 const MAX_QUERY_CHARS = 500;
 
@@ -86,6 +86,7 @@ export default function SearchPage() {
           <div className="flex-grow flex items-center pl-3">
             <Search className="h-5 w-5 text-slate-500 shrink-0" />
             <input
+              data-testid="search-input"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}

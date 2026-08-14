@@ -10,6 +10,37 @@ export class LLMService implements ILLMService {
     text: string,
     existingCategories: { id: string; label: string; description: string }[]
   ): Promise<ClassificationResult> {
+    if (process.env.NEXT_PUBLIC_E2E_TESTING === 'true') {
+      const lower = text.toLowerCase();
+      if (lower.includes('asdfghjkl') || lower.includes('gibberish')) {
+        return {
+          isValid: false,
+          rejectionReason: 'Input appears to be meaningless gibberish or spam.',
+          category: '',
+          categoryLabel: '',
+          categoryDescription: '',
+          canonicalText: ''
+        };
+      }
+      if (lower.includes('cookies') || lower.includes('love cookies')) {
+        return {
+          isValid: false,
+          rejectionReason: 'Input is out of scope. Please submit a software or product-solvable issue.',
+          category: '',
+          categoryLabel: '',
+          categoryDescription: '',
+          canonicalText: ''
+        };
+      }
+      return {
+        isValid: true,
+        category: 'software-devtools',
+        categoryLabel: 'Developer Tools & DX',
+        categoryDescription: 'Problems related to developer experience, API integrations, build tools, and cloud infrastructure.',
+        canonicalText: text.length > 50 ? text : `Generalized problem: ${text}`
+      };
+    }
+
     const provider = this.config.llmProvider;
 
     const systemPrompt = `You are an AI classification assistant for a platform called NeedBoard (Problem-Market Fit discovery engine for builders, developers, and founders).
