@@ -5,7 +5,7 @@ import { APP_COPY } from '@/lib/config/copy';
 import { ButtonSpinner, PageScanner } from '@/components/Loader';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import AlertModal from '@/components/AlertModal';
-import { useAuth, SignInButton, Show } from '@clerk/nextjs';
+import { useAuth, SignInButton, Show } from '@/lib/clerk';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { 
@@ -227,7 +227,7 @@ export default function Home() {
       setInputText('');
       setDraft(null);
     } catch (err: any) {
-      console.error(err);
+      // console.error(err);
       setError(sanitizeError(err, 'We could not complete publishing.'));
     } finally {
       setSubmitting(false);
@@ -327,6 +327,7 @@ export default function Home() {
               >
                 <div className="flex-grow flex flex-col items-start px-3 py-2">
                   <textarea
+                    data-testid="problem-textarea"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     placeholder={APP_COPY.home.inputPlaceholder}
@@ -376,7 +377,7 @@ export default function Home() {
                               type="button"
                               className="w-full md:w-auto h-12 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 px-6 rounded-xl active:scale-95 transition-all cursor-pointer"
                           >
-                            {APP_COPY.home.signInToSubmitText}
+                            {APP_COPY.home.submitButtonText}
                           </button>
                         </SignInButton>
                       </Show>
@@ -437,6 +438,7 @@ export default function Home() {
                         Cancel
                       </button>
                       <button
+                        data-testid="confirm-merge-button"
                         onClick={handleConfirmSubmission}
                         disabled={submitting}
                         className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 px-6 rounded-xl hover:opacity-90 transition-all cursor-pointer"
@@ -508,6 +510,7 @@ export default function Home() {
                         Cancel
                       </button>
                       <button
+                        data-testid="confirm-new-button"
                         onClick={handleConfirmSubmission}
                         disabled={submitting}
                         className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-teal-500 to-amber-500 text-slate-950 px-6 rounded-xl hover:from-teal-600 hover:to-amber-600 transition-all cursor-pointer"
@@ -569,7 +572,7 @@ export default function Home() {
               animate={{ opacity: 1 }}
             >
               <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>{error}</span>
+              <span className='submit-error'>{error}</span>
             </motion.div>
           )}
         </motion.div>
@@ -629,7 +632,7 @@ export default function Home() {
           <PageScanner message="Scanning database signals..." size="md" />
         ) : (
           <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-xs uppercase tracking-widest">
-            No active collective signals found.
+            No reports yet in this space. Be the first voice — every early report gets full visibility once builders start browsing.
           </div>
         )}
       </div>

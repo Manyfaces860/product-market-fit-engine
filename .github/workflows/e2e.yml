@@ -1,0 +1,48 @@
+name: Playwright E2E Tests
+
+on:
+  push:
+    branches:
+      - test/production-vercel
+  pull_request:
+    branches:
+      - test/production-vercel
+
+jobs:
+  e2e:
+    name: Run E2E Tests
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    environment: testing
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright Tests
+        env:
+          BASE_URL: 'https://test.needboard.space'
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB_TEST: 'needboard-test'
+          NEXT_PUBLIC_E2E_TESTING: 'true'
+        run: npx playwright test
+
+      - name: Upload Test Report Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

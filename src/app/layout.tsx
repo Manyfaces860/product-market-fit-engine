@@ -22,7 +22,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'P-X1 — Collective Problem Clustering',
+  title: 'NeedBoard — Collective Problem Clustering',
   description: 'See the noise become a pattern. A platform where scattered frustrations cluster into visible collective signal.',
 };
 
@@ -49,7 +49,7 @@ export default function RootLayout({
           </main>
 
           <footer className="relative z-10 border-t border-white/5 bg-slate-950/40 py-6 text-center font-mono text-[10px] tracking-widest text-slate-500 uppercase">
-            © 2026 P-X1. ALL INDIVIDUAL VOICES RESONATE IN COLLECTIVE SIGNAL.
+            © 2026 NeedBoard. ALL INDIVIDUAL VOICES RESONATE IN COLLECTIVE SIGNAL.
           </footer>
         </body>
       </html>

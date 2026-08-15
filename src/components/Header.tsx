@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Show, useAuth, useUser, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
-import { Network, Search, Layers } from 'lucide-react';
+import { Show, useAuth, useUser, SignInButton, SignUpButton, UserButton } from '@/lib/clerk';
+import { BinocularsIcon, Search, Layers, PlusCircle, LayoutDashboard, ShieldCheck } from 'lucide-react';
 
 export default function Header() {
   const pathname = usePathname();
@@ -25,9 +25,9 @@ export default function Header() {
         {/* Logo Layer */}
         <div className="flex items-center">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <Network className="h-6 w-6 text-brand-amber group-hover:rotate-45 transition-transform duration-300" />
+            <BinocularsIcon className="h-6 w-6 text-brand-amber group-hover:rotate-45 transition-transform duration-300" />
             <span className="font-mono text-lg font-bold tracking-wider bg-gradient-to-r from-brand-amber via-brand-coral to-brand-teal bg-clip-text text-transparent">
-              P-X1
+              NeedBoard
             </span>
           </Link>
         </div>
@@ -91,13 +91,26 @@ export default function Header() {
         {/* Auth / Action Section */}
         <div className="flex items-center gap-4">
           {/* Mobile nav icons */}
-          <div className="flex md:hidden items-center gap-4 text-slate-400 mr-2">
-            <Link href="/browse" className={`p-1 ${isActive('/browse') ? 'text-brand-amber' : ''}`}>
+          <div className="flex md:hidden items-center gap-3 text-slate-400 mr-2">
+            <Link href="/submit" className={`p-1 ${isActive('/submit') ? 'text-brand-amber' : ''}`} title="Submit">
+              <PlusCircle className="h-5 w-5" />
+            </Link>
+            <Link href="/browse" className={`p-1 ${isActive('/browse') ? 'text-brand-amber' : ''}`} title="Browse">
               <Layers className="h-5 w-5" />
             </Link>
-            <Link href="/search" className={`p-1 ${isActive('/search') ? 'text-brand-teal' : ''}`}>
+            <Link href="/search" className={`p-1 ${isActive('/search') ? 'text-brand-teal' : ''}`} title="Search">
               <Search className="h-5 w-5" />
             </Link>
+            {isSignedIn && (
+              <Link href="/dashboard" className={`p-1 ${isActive('/dashboard') ? 'text-amber-500/80' : ''}`} title="Dashboard">
+                <LayoutDashboard className="h-5 w-5" />
+              </Link>
+            )}
+            {isSignedIn && isAdmin && (
+              <Link href="/admin/dashboard" className={`p-1 ${isActive('/admin/dashboard') ? 'text-red-400' : ''}`} title="Admin Dashboard">
+                <ShieldCheck className="h-5 w-5" />
+              </Link>
+            )}
           </div>
 
           {isSignedIn ? (
@@ -112,7 +125,7 @@ export default function Header() {
                 </SignInButton>
                 <SignUpButton>
                   <button className="font-mono text-xs uppercase tracking-widest bg-gradient-to-r from-brand-amber to-brand-coral hover:opacity-90 text-slate-950 font-bold px-4 py-1.5 rounded transition-all active:scale-95 cursor-pointer shadow-lg shadow-brand-amber/10">
-                    Join
+                    Quick Frustration Check
                   </button>
                 </SignUpButton>
               </Show>

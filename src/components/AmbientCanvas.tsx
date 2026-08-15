@@ -11,6 +11,10 @@ interface CanvasNode {
   radius: number;
   baseRadius: number;
   color: string;
+  glowColor: string;
+  coreColor: string;
+  satelliteColor: string;
+  lineColor: string;
   label: string;
   pulseSpeed: number;
   pulsePhase: number;
@@ -64,13 +68,44 @@ export default function AmbientCanvas() {
     };
     window.addEventListener('resize', handleResize);
 
-    // Warm-to-cool palette representing signal resolve
+    // Warm-to-cool palette representing signal resolve with pre-calculated opacity colors
+    // This avoids performing string replacements/allocations inside the 60fps render loop!
     const colors = [
-      'rgba(245, 158, 11, 0.45)', // Amber
-      'rgba(239, 68, 68, 0.45)',  // Coral/Red
-      'rgba(236, 72, 153, 0.45)', // Pink
-      'rgba(14, 165, 233, 0.45)', // Light Blue
-      'rgba(20, 184, 166, 0.45)', // Teal
+      {
+        base: 'rgba(245, 158, 11, 0.45)', // Amber
+        glow: 'rgba(245, 158, 11, 0.12)',
+        core: 'rgba(245, 158, 11, 0.85)',
+        satellite: 'rgba(245, 158, 11, 0.6)',
+        line: 'rgba(245, 158, 11, 0.15)',
+      },
+      {
+        base: 'rgba(239, 68, 68, 0.45)',  // Coral/Red
+        glow: 'rgba(239, 68, 68, 0.12)',
+        core: 'rgba(239, 68, 68, 0.85)',
+        satellite: 'rgba(239, 68, 68, 0.6)',
+        line: 'rgba(239, 68, 68, 0.15)',
+      },
+      {
+        base: 'rgba(236, 72, 153, 0.45)', // Pink
+        glow: 'rgba(236, 72, 153, 0.12)',
+        core: 'rgba(236, 72, 153, 0.85)',
+        satellite: 'rgba(236, 72, 153, 0.6)',
+        line: 'rgba(236, 72, 153, 0.15)',
+      },
+      {
+        base: 'rgba(14, 165, 233, 0.45)', // Light Blue
+        glow: 'rgba(14, 165, 233, 0.12)',
+        core: 'rgba(14, 165, 233, 0.85)',
+        satellite: 'rgba(14, 165, 233, 0.6)',
+        line: 'rgba(14, 165, 233, 0.15)',
+      },
+      {
+        base: 'rgba(20, 184, 166, 0.45)', // Teal
+        glow: 'rgba(20, 184, 166, 0.12)',
+        core: 'rgba(20, 184, 166, 0.85)',
+        satellite: 'rgba(20, 184, 166, 0.6)',
+        line: 'rgba(20, 184, 166, 0.15)',
+      },
     ];
 
     // Build visual nodes
@@ -89,12 +124,11 @@ export default function AmbientCanvas() {
         const baseRadius = Math.min(18, 5 + Math.sqrt(memberCount) * 2.2);
 
         // Category index maps to color
-        const color = colors[idx % colors.length];
+        const colorPalette = colors[idx % colors.length];
 
         // Create secondary satellite orbits to represent raw submissions gravitating
         const variantsCount = Math.min(8, memberCount - 1);
         const variants = Array.from({ length: variantsCount }, () => {
-          const orbitRadius = baseRadius * (1.5 + Math.random() * 2);
           return {
             x: 0,
             y: 0,
@@ -112,7 +146,11 @@ export default function AmbientCanvas() {
           vy: (Math.random() - 0.5) * 0.2,
           baseRadius,
           radius: baseRadius,
-          color,
+          color: colorPalette.base,
+          glowColor: colorPalette.glow,
+          coreColor: colorPalette.core,
+          satelliteColor: colorPalette.satellite,
+          lineColor: colorPalette.line,
           label: cluster.canonicalText || '',
           pulseSpeed: 0.01 + Math.random() * 0.015,
           pulsePhase: Math.random() * Math.PI * 2,
@@ -137,6 +175,8 @@ export default function AmbientCanvas() {
           radius: 1 + Math.random() * 1.5,
         }));
 
+        const colorPalette = colors[i % colors.length];
+
         nodes.push({
           id: `seed-${i}`,
           x,
@@ -145,7 +185,11 @@ export default function AmbientCanvas() {
           vy: (Math.random() - 0.5) * 0.15,
           baseRadius,
           radius: baseRadius,
-          color: colors[i % colors.length],
+          color: colorPalette.base,
+          glowColor: colorPalette.glow,
+          coreColor: colorPalette.core,
+          satelliteColor: colorPalette.satellite,
+          lineColor: colorPalette.line,
           label: '',
           pulseSpeed: 0.005 + Math.random() * 0.01,
           pulsePhase: Math.random() * Math.PI * 2,
@@ -207,7 +251,7 @@ export default function AmbientCanvas() {
           glowRadius
         );
         gradient.addColorStop(0, node.color);
-        gradient.addColorStop(0.3, node.color.replace('0.45', '0.12'));
+        gradient.addColorStop(0.3, node.glowColor);
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
         ctx.fillStyle = gradient;
@@ -216,7 +260,7 @@ export default function AmbientCanvas() {
         ctx.fill();
 
         // Core solid dot
-        ctx.fillStyle = node.color.replace('0.45', '0.85');
+        ctx.fillStyle = node.coreColor;
         ctx.beginPath();
         ctx.arc(node.x, node.y, Math.max(1.5, node.radius * 0.35), 0, Math.PI * 2);
         ctx.fill();
@@ -231,13 +275,13 @@ export default function AmbientCanvas() {
           v.x = node.x + Math.cos(v.angle) * orbitDist;
           v.y = node.y + Math.sin(v.angle) * orbitDist;
 
-          ctx.fillStyle = node.color.replace('0.45', '0.6');
+          ctx.fillStyle = node.satelliteColor;
           ctx.beginPath();
           ctx.arc(v.x, v.y, v.radius, 0, Math.PI * 2);
           ctx.fill();
 
           // Connect orbit satellite to main node with super faint lines
-          ctx.strokeStyle = node.color.replace('0.45', '0.15');
+          ctx.strokeStyle = node.lineColor;
           ctx.lineWidth = 0.3;
           ctx.beginPath();
           ctx.moveTo(node.x, node.y);
@@ -249,12 +293,27 @@ export default function AmbientCanvas() {
       animationFrameId = requestAnimationFrame(draw);
     };
 
-    draw();
+    // Start animating only if tab is visible
+    if (!document.hidden) {
+      draw();
+    }
+
+    // Page Visibility Listener: Stop drawing loop when tab is in background (saves CPU/Memory & prevents unresponsiveness!)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animationFrameId);
+      } else {
+        cancelAnimationFrame(animationFrameId); // Avoid duplicate queues
+        draw();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       mediaQuery.removeEventListener('change', handleMotionChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [clusters]);
 

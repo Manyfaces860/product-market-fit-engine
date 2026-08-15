@@ -4,11 +4,16 @@ import {
   MongoProblemDocument, 
   MongoSolutionDocument, 
   MongoReviewDocument, 
-  CategoryWithCount 
+  CategoryWithCount,
+  MongoUserDocument
 } from './models/schema';
+import staticCategories from './ai/static-categories';
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB = process.env.MONGODB_DB || 'p-x1';
+const MONGODB_DB = ((process.env.NEXT_PUBLIC_E2E_TESTING === 'true' || process.env.NODE_ENV === 'test') && process.env.MONGODB_DB_TEST)
+  ? process.env.MONGODB_DB_TEST
+  : (process.env.MONGODB_DB_TEST || "needboard-test");
+const SIMILARITY_THRESHOLD = Number(process.env.NEXT_PUBLIC_SIMILARITY_THRESHOLD || 0.70);
 
 if (process.env.NODE_ENV !== 'test' && !MONGODB_URI) {
   console.warn('⚠️ MONGODB_URI is missing. MongoDB fallback mode will activate.');
@@ -362,6 +367,66 @@ export async function searchClusters(queryEmbedding: number[], limit = 5): Promi
           }
         }
       ]).toArray();
+      console.log(results)
+    } else {
+      // 🛡️ In-memory Cosine Similarity fallback for local/offline dev!
+      results = await db.collection('clusters').aggregate([
+        {
+          $vectorSearch: {
+            index: "vector_index",
+            path: "embedding",
+            queryVector: queryEmbedding,
+            limit: limit
+          }
+        }
+      ]).toArray();
+    }
+    console.log("outside", results)
+
+    return results.filter((cluster: any) => cluster.score >= SIMILARITY_THRESHOLD)
+      .map((cluster: any) => ({
+        id: cluster.id,
+        canonicalText: cluster.canonicalText,
+        categoryLabel: cluster.categoryLabel,
+        memberCount: Number(cluster.memberCount || 0),
+        score: cluster.score,
+        solutions: [],
+      } as any));
+  } catch (error) {
+    console.error('[MongoDB] searchClusters failed:', error);
+    return [];
+  }
+}
+
+/**
+ * Perform a semantic Atlas Vector Search against cluster centroids.
+ */
+export async function searchClustersForSubmit(queryEmbedding: number[], limit = 5): Promise<(MongoClusterDocument & { score?: number })[]> {
+  try {
+    const db = await getDb();
+    let results: any[];
+
+    if (isMongoDbLive()) {
+      // 🚀 MongoDB Atlas Vector Search Pipeline with strict field projections!
+      // This strictly returns ONLY the 5 fields rendered on search page cards, 
+      // completely stripping unrendered fields (embedding, sampleVariants, userIds, solutions, timestamps).
+      results = await db.collection('clusters').aggregate([
+        {
+          $vectorSearch: {
+            index: process.env.VECTOR_INDEX,
+            path: "embedding",
+            queryVector: queryEmbedding,
+            numCandidates: 100,
+            limit: limit
+          }
+        },
+        {
+          $project: {
+            embedding: 0,
+            score: { $meta: "vectorSearchScore" } // 🚀 Retrieve similarity score!
+          }
+        }
+      ]).toArray();
     } else {
       // 🛡️ In-memory Cosine Similarity fallback for local/offline dev!
       results = await db.collection('clusters').aggregate([
@@ -377,15 +442,11 @@ export async function searchClusters(queryEmbedding: number[], limit = 5): Promi
     }
 
     // Sanitize and return search cards (NO SOLUTIONS joined - lazy loaded!)
-    return results.map((cluster: any) => {
+    return results.filter((cluster: any) => cluster.score >= SIMILARITY_THRESHOLD)
+                  .map((cluster: any) => {
       // For local fallback mode, map to only those 5 required fields
       return {
-        id: cluster.id,
-        canonicalText: cluster.canonicalText,
-        categoryLabel: cluster.categoryLabel,
-        memberCount: Number(cluster.memberCount || 0),
-        score: cluster.score,
-        solutions: [] // Required empty array as default
+        ...cluster
       } as any;
     });
   } catch (error) {
@@ -473,9 +534,10 @@ export async function upsertCluster(cluster: MongoClusterDocument, embedding: nu
   try {
     const db = await getDb();
     
-    // Merge the vector array into the document
+    // Merge the vector array and compute variantCount automatically 🚀
     const clusterDoc = {
       ...cluster,
+      variantCount: cluster.sampleVariants?.length || 0,
       embedding
     };
     delete (clusterDoc as any)._id; // Clean ID
@@ -551,15 +613,6 @@ export async function getCategories(): Promise<CategoryWithCount[]> {
   try {
     const db = await getDb();
 
-    // 1. Core Category definitions
-    const staticCategories = [
-      { id: 'software-devtools', label: 'Developer Tools & DX', description: 'Friction in local developer workflows, compilation bottlenecks, flaky testing environments, and monorepo configurations.' },
-      { id: 'software-saas', label: 'SaaS & B2B Productivity', description: 'Administrative bottlenecks, calendar coordination headaches, and collaborative document syncing issues.' },
-      { id: 'hardware-iot', label: 'Hardware & Smart Devices', description: 'Physical gadget issues, router band pairing headaches, and customized adapter shortages.' },
-      { id: 'ecommerce-ops', label: 'E-commerce & Shipping Ops', description: 'Multi-channel inventory syncing, custom label printing bottlenecks, and automated return processing.' },
-      { id: 'ai-operations', label: 'AI & Data Infrastructure', description: 'High LLM processing latencies, vector indexing sync issues, rate-limiting, and unstructured document parsing.' }
-    ];
-
     // 2. Fetch counts in parallel from MongoDB Collections! 🚀
     const [clusters, problems] = await Promise.all([
       db.collection('clusters').find({}).toArray(),
@@ -623,6 +676,22 @@ async function joinMongoDataToClusters(clusters: any[]): Promise<any[]> {
       .find({ clusterId: { $in: clusterIds } })
       .toArray();
 
+    // 🚀 Fetch corresponding builder profile details from the users collection in batch!
+    const builderIds = Array.from(new Set(solutions.map((s: any) => s.builderId).filter(Boolean)));
+    const builders = builderIds.length > 0 
+      ? await db.collection('users').find({ userId: { $in: builderIds } }).toArray()
+      : [];
+
+    // Map builder details by userId for instant O(1) matching!
+    const buildersById = builders.reduce((acc: Record<string, any>, u: any) => {
+      acc[u.userId] = {
+        customBio: u.customBio || '',
+        githubUrl: u.githubUrl || '',
+        websiteUrl: u.websiteUrl || ''
+      };
+      return acc;
+    }, {} as Record<string, any>);
+
     // Group solutions by clusterId
     const solutionsByCluster = solutions.reduce((acc: Record<string, any[]>, sol: any) => {
       const cId = sol.clusterId;
@@ -630,6 +699,9 @@ async function joinMongoDataToClusters(clusters: any[]): Promise<any[]> {
         if (!acc[cId]) {
           acc[cId] = [];
         }
+        
+        const builderPerks = buildersById[sol.builderId] || { customBio: '', githubUrl: '', websiteUrl: '' };
+
         acc[cId].push({
           id: sol.id,
           name: sol.name,
@@ -637,6 +709,9 @@ async function joinMongoDataToClusters(clusters: any[]): Promise<any[]> {
           description: sol.description,
           builderId: sol.builderId,
           builderName: sol.builderName,
+          builderBio: builderPerks.customBio,      // 🚀 Inject customized bio!
+          builderGithub: builderPerks.githubUrl,  // 🚀 Inject custom GitHub link!
+          builderWebsite: builderPerks.websiteUrl, // 🚀 Inject custom portfolio!
           upvotes: Number(sol.upvotes || 0),
           votesUserIds: Array.isArray(sol.votesUserIds) ? sol.votesUserIds : [],
           downvotedUserIds: Array.isArray(sol.downvotedUserIds) ? sol.downvotedUserIds : [],
@@ -649,6 +724,8 @@ async function joinMongoDataToClusters(clusters: any[]): Promise<any[]> {
 
     for (const cluster of clusters) {
       cluster.solutions = solutionsByCluster[cluster.id] || [];
+      // Hydrate pre-calculated variantCount dynamically if missing from old records
+      cluster.variantCount = typeof cluster.variantCount === 'number' ? cluster.variantCount : (cluster.sampleVariants?.length || 0);
       // Clean up raw MongoDB Object IDs to prevent UI serialisation errors
       delete cluster._id;
     }
@@ -659,4 +736,63 @@ async function joinMongoDataToClusters(clusters: any[]): Promise<any[]> {
     }
   }
   return clusters;
+}
+
+// =========================================================================
+// 👤 USER PROFILES & ROLE-PERKS OPERATIONS
+// =========================================================================
+
+/**
+ * Upsert or update a user document.
+ * Handles initial registration and profile updates for builders/founders.
+ */
+export async function upsertUser(user: MongoUserDocument): Promise<void> {
+  try {
+    const db = await getDb();
+    const userDoc = { ...user };
+    delete (userDoc as any)._id; // Clean primary ID
+
+    await db.collection('users').updateOne(
+      { userId: user.userId },
+      { $set: userDoc },
+      { upsert: true }
+    );
+    console.log(`[MongoDB] User profile upserted successfully: ${user.userId}`);
+  } catch (error) {
+    console.error(`[MongoDB] upsertUser failed for ${user.userId}:`, error);
+  }
+}
+
+/**
+ * Fetch a user document from the users collection by their Clerk User ID.
+ */
+export async function getUserByClerkId(userId: string): Promise<MongoUserDocument | null> {
+  try {
+    const db = await getDb();
+    const user = await db.collection('users').findOne({ userId });
+    if (!user) return null;
+    
+    delete (user as any)._id; // Un-nest mongo primary key
+    return user as any;
+  } catch (error) {
+    console.error(`[MongoDB] getUserByClerkId failed for ${userId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Automatic Promotion Loop: Elevates a user from 'reporter' to 'builder'
+ * the exact millisecond they submit their first verified product solution.
+ */
+export async function promoteUserToBuilder(userId: string): Promise<void> {
+  try {
+    const db = await getDb();
+    await db.collection('users').updateOne(
+      { userId, role: 'reporter' },
+      { $set: { role: 'builder' } }
+    );
+    console.log(`[MongoDB] User promoted to Builder: ${userId}`);
+  } catch (error) {
+    console.error(`[MongoDB] promoteUserToBuilder failed for ${userId}:`, error);
+  }
 }

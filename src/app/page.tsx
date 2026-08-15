@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAuth, SignInButton } from '@clerk/nextjs';
+import { useAuth, SignInButton } from '@/lib/clerk';
 import { 
   ArrowRight, 
   TrendingUp, 
@@ -69,42 +69,56 @@ export default function LandingPage() {
   }, []);
 
   // 2. Interactive Search Mock Typing Loop
-  useEffect(() => {
-    const fullText = HOMEPAGE_COPY.features.list[0]?.interactiveInput || 'flaky microfrontend compile failures';
+useEffect(() => {
+  const fullText = HOMEPAGE_COPY.features.list[0]?.interactiveInput || 'flaky microfrontend compile failures';
+  let timer: ReturnType<typeof setTimeout>;
+  let cancelled = false;
+
+  const runSearchSimulation = () => {
+    if (cancelled) return;
+    setSearchMockPhase('typing');
+    setSearchText('');
+
     let index = 0;
-    let timer: NodeJS.Timeout;
 
-    const runSearchSimulation = () => {
-      setSearchMockPhase('typing');
-      setSearchText('');
-      index = 0;
+    const typeChar = () => {
+      if (cancelled) return;
 
-      const typeChar = () => {
-        if (index < fullText.length) {
-          setSearchText(prev => prev + fullText[index]);
-          index++;
-          timer = setTimeout(typeChar, 40);
-        } else {
-          // Finished typing, trigger scan!
-          timer = setTimeout(() => {
-            setSearchMockPhase('scanning');
-            // Scan for 1.5 seconds, then show match!
-            timer = setTimeout(() => {
-              setSearchMockPhase('matched');
-              // Hold match for 4 seconds, then repeat!
-              timer = setTimeout(runSearchSimulation, 4000);
-            }, 1500);
-          }, 800);
-        }
-      };
-      
-      // Start typing delay
-      timer = setTimeout(typeChar, 1000);
+      if (index < fullText.length) {
+        const char = fullText[index];
+        index++;
+        setSearchText(prev => prev + char);
+        timer = setTimeout(typeChar, 40);
+        return;
+      }
+
+      // Finished typing, trigger scan!
+      timer = setTimeout(() => {
+        if (cancelled) return;
+        setSearchMockPhase('scanning');
+
+        // Scan for 1.5 seconds, then show match!
+        timer = setTimeout(() => {
+          if (cancelled) return;
+          setSearchMockPhase('matched');
+
+          // Hold match for 4 seconds, then repeat!
+          timer = setTimeout(runSearchSimulation, 4000);
+        }, 1500);
+      }, 800);
     };
 
-    runSearchSimulation();
-    return () => clearTimeout(timer);
-  }, []);
+    // Start typing delay
+    timer = setTimeout(typeChar, 1000);
+  };
+
+  runSearchSimulation();
+
+  return () => {
+    cancelled = true;
+    clearTimeout(timer);
+  };
+}, []);
 
   // 3. Interactive Submit Lifecycle Stage Loop
   useEffect(() => {
@@ -174,6 +188,20 @@ export default function LandingPage() {
         >
           {HOMEPAGE_COPY.hero.subtitle}
         </motion.p>
+
+        {/* Maidensail Trust Badge */}
+        <motion.div
+          className="mt-6 flex justify-center"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.25, duration: 0.6 }}
+        >
+          <div className="inline-flex items-center px-4 py-2 rounded-2xl border border-white/5 bg-slate-950/65 hover:border-brand-amber/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] backdrop-blur-xl transition-all duration-300 cursor-pointer">
+            <a href="https://maidensail.com/startup/needboard" rel="dofollow">
+              <img src="https://maidensail.com/badge/needboard.svg" alt="Listed on Maidensail" height="36" />
+            </a>
+          </div>
+        </motion.div>
 
         {/* Hero CTAs */}
         <motion.div
@@ -292,7 +320,7 @@ export default function LandingPage() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <Cpu className="h-4 w-4 animate-spin" /> Scanning HNSW MongoDB Vector Index...
+                    <Cpu className="h-4 w-4 animate-spin" /> Finding anything related to your pain-point...
                   </motion.div>
                 )}
 
@@ -305,7 +333,7 @@ export default function LandingPage() {
                     exit={{ opacity: 0 }}
                   >
                     <div className="flex items-center justify-between text-[9px] text-teal-400 font-bold uppercase tracking-wider">
-                      <span>Matched Problem Centroid</span>
+                      <span>Matched Problem</span>
                       <span className="bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">{HOMEPAGE_COPY.features.list[0]?.interactiveScore}</span>
                     </div>
                     <p className="text-xs text-slate-200 leading-normal italic">&quot;{HOMEPAGE_COPY.features.list[0]?.interactiveMatch}&quot;</p>
@@ -488,7 +516,7 @@ export default function LandingPage() {
                 href="/submit"
                 className="font-mono text-[10px] tracking-widest uppercase font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1.5 transition-colors"
               >
-                Launch Problem Seeder <ArrowRight className="h-3 w-3" />
+                Report Your First Problem <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
           </div>
@@ -521,7 +549,7 @@ export default function LandingPage() {
                 href="/browse"
                 className="font-mono text-[10px] tracking-widest uppercase font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1.5 transition-colors"
               >
-                Scan Validated Niches <ArrowRight className="h-3 w-3" />
+                Browse Open Problems <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
           </div>
@@ -588,7 +616,7 @@ export default function LandingPage() {
           <PageScanner message="Scanning database signals..." size="md" /> // 🚀 Stunning centered loader!
         ) : (
           <div className="text-center py-16 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-xs uppercase tracking-widest">
-            No active collective signals found. Run seeder to get started!
+            Nobody's reported a problem yet — yours could be the first thing builders see. 
           </div>
         )}
       </section>
