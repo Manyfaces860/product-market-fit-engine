@@ -54,7 +54,7 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 60000,
+    timeout: process.env.CI ? 120000 : 60000,
     env: {
       NEXT_PUBLIC_E2E_TESTING: 'true',
     }

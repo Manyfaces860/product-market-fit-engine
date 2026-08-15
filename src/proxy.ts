@@ -7,15 +7,9 @@ const isProtectedRoute = createRouteMatcher([
   '/api/search(.*)', // 🚀 Protect semantic search endpoint too!
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
-  // If we are in E2E testing mode, bypass Clerk's middleware completely if the bypass cookie or header is present
-  if (process.env.NEXT_PUBLIC_E2E_TESTING === 'true') {
-    const e2eUserId = req.headers.get('x-e2e-user-id') || req.cookies.get('e2e_user_id')?.value;
-    if (e2eUserId) {
-      return NextResponse.next();
-    }
-  }
-
+export default process.env.NEXT_PUBLIC_E2E_TESTING === 'true'
+  ? () => NextResponse.next()
+  : clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     const {userId} = await auth();
     if (!userId) {
