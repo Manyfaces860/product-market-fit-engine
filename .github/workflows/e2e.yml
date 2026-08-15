@@ -3,10 +3,10 @@ name: Playwright E2E Tests
 on:
   push:
     branches:
-      - test/production-vercel
+      - develop
   pull_request:
     branches:
-      - test/production-vercel
+      - develop
 
 jobs:
   e2e:
