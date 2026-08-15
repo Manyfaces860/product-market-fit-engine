@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { createMockStore, installApiMocks } from './mock-api';
 
 test.describe('Navigation & Browsing Flow', () => {
   test('should navigate from landing page to browse, choose category, select cluster, and go back', async ({ page }) => {
+    await installApiMocks(page, createMockStore());
+
     // 1. Visit Home Page
     await page.goto('/');
     await expect(page.locator('span:has-text("NeedBoard")')).toBeVisible();
@@ -29,7 +32,7 @@ test.describe('Navigation & Browsing Flow', () => {
     const backLink = page.locator('a:has-text("Back to Niche (SaaS & B2B Productivity)")').first();
     await backLink.click();
     await expect(page).toHaveURL('/browse/software-saas');
-    
+
     const backLink2 = page.locator('a:has-text("Back to Niches")').first();
     await backLink2.click();
     await expect(page).toHaveURL('/browse');

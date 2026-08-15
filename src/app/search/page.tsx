@@ -154,11 +154,8 @@ export default function SearchPage() {
               <PageScanner message={APP_COPY.search.searchingText} />
             </motion.div>
           ) : results.length > 0 ? (
-            <motion.div 
+            <div 
               className="space-y-6"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
             >
               <h3 className="font-mono text-xs text-slate-400 uppercase tracking-widest border-b border-white/5 pb-2">
                 {APP_COPY.search.resultsTitle}:
@@ -201,15 +198,13 @@ export default function SearchPage() {
                   );
                 })}
               </div>
-            </motion.div>
+            </div>
           ) : query !== '' && !loading ? (
-            <motion.div 
+            <div 
               className="text-center py-16 border border-dashed border-white/5 rounded-2xl font-mono text-xs uppercase text-slate-500 tracking-widest px-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
             >
               {APP_COPY.search.noResults}
-            </motion.div>
+            </div>
           ) : (
             <motion.div 
               className="text-center py-16 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-[10px] tracking-[0.2em] uppercase select-none flex flex-col items-center justify-center gap-2"

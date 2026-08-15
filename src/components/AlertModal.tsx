@@ -73,7 +73,8 @@ export default function AlertModal({
             {/* Close Button X */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-1.5 text-slate-500 hover:text-slate-100 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+              data-testid="modal-cross-button"
+              className="modal-cross-button absolute top-4 right-4 p-1.5 text-slate-500 hover:text-slate-100 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
             >
               <X className="h-3.5 w-3.5" />
             </button>

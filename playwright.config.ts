@@ -27,8 +27,6 @@ export default defineConfig({
   workers: 1, // Keep single worker for database mutation predictability
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
-  /* Global setup hook to reset and seed the database once before all tests */
-  globalSetup: require.resolve('./e2e/global-setup'),
 
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -49,7 +47,9 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local dev server before starting the tests */
+  /* Run your local dev server before starting the tests.
+     All /api/** traffic is mocked in-page (see e2e/mock-api.ts), so no
+     MongoDB / Pinecone / LLM providers are needed to run the suite. */
   webServer: process.env.BASE_URL ? undefined : {
     command: 'npm run dev',
     url: 'http://localhost:3000',
@@ -57,9 +57,6 @@ export default defineConfig({
     timeout: 60000,
     env: {
       NEXT_PUBLIC_E2E_TESTING: 'true',
-      MONGODB_URI: process.env.MONGODB_URI || '',
-      MONGODB_DB_TEST: process.env.MONGODB_DB_TEST || '',
-      MONGODB_DB_PROD: process.env.MONGODB_DB_PROD || '',
     }
   },
 });
