@@ -19,7 +19,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-slate-950/80 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-slate-950/80 backdrop-blur-md overflow-x-hidden">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         
         {/* Logo Layer */}
@@ -91,7 +91,7 @@ export default function Header() {
         {/* Auth / Action Section */}
         <div className="flex items-center gap-4">
           {/* Mobile nav icons */}
-          <div className="flex md:hidden items-center gap-3 text-slate-400 mr-2">
+          <div className="flex md:hidden items-center gap-2 text-slate-400">
             <Link href="/submit" className={`p-1 ${isActive('/submit') ? 'text-brand-amber' : ''}`} title="Submit">
               <PlusCircle className="h-5 w-5" />
             </Link>
@@ -124,8 +124,9 @@ export default function Header() {
                   </button>
                 </SignInButton>
                 <SignUpButton>
-                  <button className="font-mono text-xs uppercase tracking-widest bg-gradient-to-r from-brand-amber to-brand-coral hover:opacity-90 text-slate-950 font-bold px-4 py-1.5 rounded transition-all active:scale-95 cursor-pointer shadow-lg shadow-brand-amber/10">
-                    Quick Frustration Check
+                  <button className="font-mono text-[10px] uppercase tracking-widest bg-gradient-to-r from-brand-amber to-brand-coral hover:opacity-90 text-slate-950 font-bold px-3 py-1 rounded transition-all active:scale-95 cursor-pointer shadow-lg shadow-brand-amber/10">
+                    <span className="hidden sm:inline">Quick Frustration Check</span>
+                    <span className="sm:hidden">Quick Check</span>
                   </button>
                 </SignUpButton>
               </Show>
