@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Playfair_Display } from 'next/font/google';
-import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProvider } from '@/lib/clerk';
 import Header from '@/components/Header';
 import AmbientCanvas from '@/components/AmbientCanvas';
 import './globals.css';

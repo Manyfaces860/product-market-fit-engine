@@ -132,4 +132,6 @@ export function UserButton(props: any) {
   return <clerkReal.UserButton {...props} />;
 }
 
-export { ClerkProvider } from '@clerk/nextjs';
+export const ClerkProvider = process.env.NEXT_PUBLIC_E2E_TESTING === 'true'
+  ? ({ children }: { children: React.ReactNode }) => children
+  : clerkReal.ClerkProvider;
