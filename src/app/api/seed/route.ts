@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@/lib/clerk-server';
 import { embeddingService } from '@/lib/ai';
 import { upsertCluster, insertProblem, wipePineconeIndex, getDb } from '@/lib/mongodb';
 import { MongoClusterDocument as ClusterRecord, MongoProblemDocument as ProblemRecord } from '@/lib/models/schema';

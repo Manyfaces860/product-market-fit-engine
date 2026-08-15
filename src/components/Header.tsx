@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Show, useAuth, useUser, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
+import { Show, useAuth, useUser, SignInButton, SignUpButton, UserButton } from '@/lib/clerk';
 import { BinocularsIcon, Search, Layers, PlusCircle, LayoutDashboard, ShieldCheck } from 'lucide-react';
 
 export default function Header() {

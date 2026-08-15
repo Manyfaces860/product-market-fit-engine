@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/clerk-server';
 import { validateQuery } from '@/lib/validation';
 import { rateLimit, handleRateLimitResponse } from '@/lib/rate-limit';
 import { embeddingService, llmService } from '@/lib/ai';

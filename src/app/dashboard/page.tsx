@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAuth, useUser, SignInButton } from '@clerk/nextjs';
+import { useAuth, useUser, SignInButton } from '@/lib/clerk';
 import { 
   ShieldCheck, 
   Sparkles, 

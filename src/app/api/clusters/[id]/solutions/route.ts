@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@/lib/clerk-server';
 import { getClusterById, getDb, promoteUserToBuilder } from '@/lib/mongodb';
 import { MongoSolutionDocument as Solution } from '@/lib/models/schema';
 import { blastLaunchNotification } from '@/lib/resend';
