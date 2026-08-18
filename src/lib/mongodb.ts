@@ -12,7 +12,8 @@ import staticCategories from './ai/static-categories';
 const MONGODB_URI = process.env.MONGODB_URI;
 const MONGODB_DB = ((process.env.NEXT_PUBLIC_E2E_TESTING === 'true' || process.env.NODE_ENV === 'test') && process.env.MONGODB_DB_TEST)
   ? process.env.MONGODB_DB_TEST
-  : (process.env.MONGODB_DB_TEST || "needboard-test");
+  : (process.env.MONGODB_DB_PROD || "needboard-test");
+console.log(MONGODB_DB)
 const SIMILARITY_THRESHOLD = Number(process.env.NEXT_PUBLIC_SIMILARITY_THRESHOLD || 0.70);
 
 if (process.env.NODE_ENV !== 'test' && !MONGODB_URI) {
