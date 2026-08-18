@@ -45,6 +45,32 @@
 
 **Status:** CI green on `develop` (12/12, ~38s, keyless); `main` merged locally, not pushed; prod server running at localhost:3000 for manual Clerk testing.
 
+### UI redesign per `new-ui-description.md` (branch `design/new-ui`)
+- **Terminal data-entry surfaces:** new `.input-terminal` / `.input-terminal-teal` classes in `globals.css` — Geist Mono on ALL inputs/textareas/selects, frosted `slate-950/80` bg, hairline `white/10` border, amber (or teal) focus border + soft glow ring. Submit form shell gained the same `focus-within` amber glow the search bar already had.
+- **Glassmorphic cards:** new `.glass-card` class (`backdrop-blur(24px)`) applied across home trending cards, browse/category rows, search results, cluster detail cards, dashboard panels, admin stat + panel cards — ambient canvas now shows through everywhere.
+- **Eyebrows:** all section headers now use the `NN // SECTION NAME` micro-label format with colored icon chips (`p-2 bg-{color}-500/10 rounded-xl`): home 01–04, submit 00/01, browse/category/search `00 //`, cluster 00–03, dashboard panels 01–06, admin 00–04.
+- **Disabled states:** amber-gradient CTAs now `disabled:opacity-30` (was 50); teal-gradient submits `disabled:opacity-50` + `pointer-events-none`.
+- **Verified:** `npm run build` passes; `CI=1 npx playwright test` 12/12 pass (~22s, offline).
+
+### UI redesign v3: FULL terminal console (user direction: "Full terminal console")
+- **Mono everywhere:** `globals.css` `@theme` now remaps `--font-sans: var(--font-geist-mono)` — every `font-sans` utility renders Geist Mono (no classes needed per-element); unlayered `body` + `h1,h2,h3,.font-display` rules force mono over Tailwind's layered utilities (Playfair import stays in layout but is never applied). Verified via headless DOM probe: body, paragraphs, h1s, inputs ALL compute `Geist Mono`.
+- **CRT overlay:** `.scanlines` fixed div (`z-50`, `pointer-events-none`, 3px repeating lines @ 0.025 white) added in `layout.tsx` after `<AmbientCanvas />` — do NOT remove (part of the terminal look).
+- **HUD corner brackets:** `.hud-corners` (amber) / `.hud-corners-teal` (teal) classes — 4 corner brackets via layered `linear-gradient` backgrounds (14px, 0.65 alpha). Applied to: home About card + 3 console cards + 2 ecosystem cards, submit draft card (amber) + success card (teal), search shell (teal), cluster canonical + me-too cards, dashboard header card, admin 4 stat cards.
+- **`$` prompts:** submit textarea wrapped with amber `$` prompt (flex row); search input's `Search` icon replaced by teal `$` span (import kept — header chip still uses it).
+- **Header readout:** "SYSTEM ONLINE" — teal pulsing dot (`animate-pulse` + `shadow-[0_0_8px_rgba(45,212,191,0.8)]`) + 9px `tracking-[0.2em]` uppercase mono text, `hidden lg:flex`.
+- **Glow bumps:** home hero badge `0.1`→`0.25`, primary CTA `0.2`→`0.35`, submit submit-button + cluster me-too button `0.3`, input focus glows `0.18`/`0.20` (was 0.08/0.10), search shell teal `focus-within` 0.15; terminal scrollbars (8px amber).
+- **Gotcha:** `npm run dev` (E2E mode) surfaces compile errors as an HTTP 500 "This page couldn't load" — probing with `page.goto` returns no font/scanline data; check the dev log (`/var/folders/.../p-x1-dev.log`) for the actual compile error (hit: removed `Search` import while header chip still used it).
+- **Verified:** `npm run build` passes; `CI=1 npx playwright test` 12/12 pass (~24s, offline). Dev server running at localhost:3000 (E2E mode) — user must hard-refresh (Cmd+Shift+R) to bypass stale cached CSS/HTML.
+
+### Category focus: only Developer Tools & DX + SaaS & B2B Productivity (user direction)
+- **`static-categories.ts`**: each category now has `status: 'active' | 'coming-soon'` — only `software-devtools` + `software-saas` are active; exports `isFocusedCategory(id)` + `focusedCategories`.
+- **Browse page**: active cards first (sorted), coming-soon cards render dimmed (`opacity-60`) with Lock icon + "Coming Soon" pill + "Locked" footer, NOT links. `Category` interface gained `status?`.
+- **`/browse/[category]`**: direct URL to a coming-soon category renders a locked panel (fetch skipped via early return in effect, `isComingSoon` in deps).
+- **LLM**: system prompt now lists ONLY the 2 active categories; rule 5 rejects anything outside focus (no new-category proposals); post-parse guard force-invalidates any `isValid: true` result whose category isn't active. E2E mock unchanged (gibberish/cookies rejection intact) — `existingCategories` param now unused in real path (kept for signature compat).
+- **`/api/problems`**: match path requires `isFocusedCategory(topMatch.category)` — cannot join coming-soon clusters.
+- **Submit page**: `DEFAULT_TAXONOMY` trimmed to the 2 focused categories (dropdown + label fallback).
+- **Verified:** build passes; 12/12 E2E green (mock fixtures + mock categories all use the two focused ids).
+
 ## Secrets Policy (MANDATORY)
 - NEVER read, print, copy, or log values from `.env`, `.env.test`, `.env.prod`, or any key files (Clerk, MongoDB, OpenAI, Pinecone, Upstash, etc.).
 - Allowed checks only: key-name presence (`grep -c`), format/prefix checks with values masked (e.g. `pk_test_<rest>`), never full values.

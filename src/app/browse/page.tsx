@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Layers, ChevronRight, Activity, TrendingUp } from 'lucide-react';
+import { Layers, ChevronRight, Activity, TrendingUp, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { APP_COPY } from '@/lib/config/copy';
 import { PageScanner } from '@/components/Loader';
@@ -13,6 +13,7 @@ interface Category {
   description: string;
   clusterCount: number;
   problemCount: number;
+  status?: 'active' | 'coming-soon';
 }
 
 export default function BrowsePage() {
@@ -41,9 +42,12 @@ export default function BrowsePage() {
       
       {/* Header */}
       <div className="mb-12 text-center md:text-left">
-        <span className="font-mono text-[10px] tracking-[0.3em] text-amber-500 uppercase font-bold">
-          Market Verticals
-        </span>
+        <div className="flex flex-col items-center md:items-start gap-2">
+          <div className="p-2 bg-amber-500/10 rounded-xl inline-flex"><Layers className="h-5 w-5 text-amber-500" /></div>
+          <span className="font-mono text-[10px] tracking-[0.3em] text-amber-500 uppercase font-bold">
+            00 // Market Verticals
+          </span>
+        </div>
         <h1 className="mt-2 text-3xl sm:text-5xl font-display font-bold italic tracking-tight text-slate-100">
           {APP_COPY.browse.title}
         </h1>
@@ -57,16 +61,53 @@ export default function BrowsePage() {
         <PageScanner message="Compiling niche market counts..." />
       ) : categories.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((cat, idx) => (
+          {[...categories]
+            .sort((a, b) => Number(b.status === 'active') - Number(a.status === 'active'))
+            .map((cat, idx) => (
             <motion.div
               key={cat.id}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05, duration: 0.4 }}
             >
+              {cat.status === 'coming-soon' ? (
+                <div className="group flex flex-col justify-between h-56 p-6 bg-slate-900/20 opacity-60 select-none shadow-xl glass-card hud-corners-violet">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-2.5 bg-white/5 text-slate-600">
+                        <Lock className="h-5 w-5" />
+                      </div>
+
+                      {/* Coming Soon Pill */}
+                      <div className="flex items-center gap-3 font-mono text-[10px] tracking-wider text-slate-500 uppercase">
+                        <span className="text-slate-600 font-semibold bg-white/5 px-2 py-0.5">
+                          Coming Soon
+                        </span>
+                      </div>
+                    </div>
+
+                    <h2 className="text-lg font-bold font-sans text-slate-300">
+                      {cat.label}
+                    </h2>
+                    <p className="mt-2 text-xs text-slate-500 leading-relaxed line-clamp-2">
+                      {cat.description}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between font-mono text-[9px] tracking-widest uppercase">
+                    <span className="text-slate-600 flex items-center gap-1">
+                      <Activity className="h-3 w-3 text-slate-600" />
+                      Not accepting reports yet
+                    </span>
+                    <span className="text-slate-600">
+                      Locked
+                    </span>
+                  </div>
+                </div>
+              ) : (
               <Link
                 href={`/browse/${cat.id}`}
-                className="group flex flex-col justify-between h-56 p-6 bg-slate-900/40 border border-white/5 rounded-2xl hover:bg-slate-900/75 hover:border-white/10 transition-all duration-300 shadow-xl"
+                className="group flex flex-col justify-between h-56 p-6 bg-slate-900/40 hover:bg-slate-900/75 transition-all duration-300 shadow-xl glass-card hud-corners-violet"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -100,11 +141,12 @@ export default function BrowsePage() {
                   </span>
                 </div>
               </Link>
+              )}
             </motion.div>
           ))}
         </div>
       ) : (
-        <div className="text-center py-24 border border-dashed border-white/5 rounded-2xl p-8 max-w-xl mx-auto">
+        <div className="text-center py-24 border border-dashed border-white/5 p-8 max-w-xl mx-auto">
           <p className="font-mono text-sm text-slate-400">No active categories found.</p>
           <p className="text-xs text-slate-500 mt-2">Submit a problem on the home page or click "Seed Data" to populate sample clusters.</p>
           <Link

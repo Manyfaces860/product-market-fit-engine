@@ -265,7 +265,7 @@ export default function UserDashboard() {
       {/* =========================================================================
           📰 HEADER CARD (AVATAR + ROLE BADGE)
          ========================================================================= */}
-      <div className="p-8 bg-slate-900/40 border border-white/5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-2xl backdrop-blur-3xl">
+      <div className="p-8 bg-slate-900/40 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-2xl backdrop-blur-3xl hud-corners-emerald">
         <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
           {/* Avatar frame */}
           <div className={`w-16 h-16 rounded-full border-2 flex items-center justify-center relative overflow-hidden select-none shrink-0 ${
@@ -331,11 +331,11 @@ export default function UserDashboard() {
         {/* Builder Aggregate Metrics */}
         {(profile.role === 'builder' || profile.role === 'admin') && (
           <div className="flex gap-4 shrink-0 font-mono select-none">
-            <div className="px-5 py-3.5 bg-slate-950/70 border border-white/5 rounded-xl text-center min-w-[100px] shadow-lg">
+            <div className="px-5 py-3.5 bg-slate-950/70 border border-white/5 text-center min-w-[100px] shadow-lg">
               <span className="text-[9px] text-slate-500 uppercase tracking-widest block font-bold">SOLUTIONS</span>
               <strong className="text-xl font-bold text-teal-400">{builderSolutions.length}</strong>
             </div>
-            <div className="px-5 py-3.5 bg-slate-950/70 border border-white/5 rounded-xl text-center min-w-[100px] shadow-lg">
+            <div className="px-5 py-3.5 bg-slate-950/70 border border-white/5 text-center min-w-[100px] shadow-lg">
               <span className="text-[9px] text-slate-500 uppercase tracking-widest block font-bold">TOTAL SCORE</span>
               <strong className="text-xl font-bold text-teal-400">+{totalUpvotes}</strong>
             </div>
@@ -382,9 +382,9 @@ export default function UserDashboard() {
         <div className="space-y-6 lg:sticky lg:top-8">
           
           {/* Box 1: Dynamic Perks highlights */}
-          <div className="p-6 bg-slate-900/20 border border-white/5 rounded-2xl space-y-4">
-            <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-1.5 border-b border-white/5 pb-3">
-              <Zap className="h-4 w-4 text-amber-500 shrink-0" /> Dynamic Role Benefits
+          <div className="p-6 bg-slate-900/20 space-y-4 glass-card hud-corners-emerald">
+            <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-2 border-b border-white/5 pb-3">
+              <span className="p-1.5 bg-amber-500/10 rounded-lg shrink-0"><Zap className="h-3.5 w-3.5 text-amber-500" /></span> 01 // Dynamic Role Benefits
             </h3>
             
             <ul className="space-y-3.5 text-xs text-slate-300">
@@ -409,7 +409,7 @@ export default function UserDashboard() {
           </div>
 
           {/* Box 2: Portfolio customizer (Locked vs Active) */}
-          <div className="relative overflow-hidden rounded-2xl border border-white/5">
+          <div className="relative overflow-hidden border border-white/5">
             
             {/* Blurry lock backdrop for Reporter tier */}
             {!perks.customLinksEnabled && (
@@ -433,8 +433,8 @@ export default function UserDashboard() {
             )}
 
             <form onSubmit={handleSaveProfile} className="p-6 bg-slate-900/20 space-y-4">
-              <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-1.5 border-b border-white/5 pb-3">
-                <Award className="h-4 w-4 text-teal-400 shrink-0 animate-spin" style={{ animationDuration: '6s' }} /> Builder Profile Customizer
+              <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-2 border-b border-white/5 pb-3">
+                <span className="p-1.5 bg-teal-500/10 rounded-lg shrink-0"><Award className="h-3.5 w-3.5 text-teal-400" /></span> 02 // Builder Profile Customizer
               </h3>
 
               {/* Bio Field */}
@@ -446,7 +446,7 @@ export default function UserDashboard() {
                   value={bioInput}
                   onChange={(e) => setBioInput(e.target.value.substring(0, 160))}
                   placeholder="e.g. Building micro-SaaS developer tooling since 2021. Founder of Webpack TurboLoader."
-                  className="w-full bg-slate-950 border border-white/5 hover:border-white/10 rounded-xl p-3 text-xs text-slate-300 focus:outline-none focus:border-teal-400/50 resize-none h-20"
+                  className="input-terminal input-terminal-teal w-full p-3 text-xs resize-none h-20"
                 />
               </div>
 
@@ -460,7 +460,7 @@ export default function UserDashboard() {
                   value={githubInput}
                   onChange={(e) => setGithubInput(e.target.value)}
                   placeholder="github.com/your-username"
-                  className="w-full bg-slate-950 border border-white/5 hover:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-teal-400/50"
+                  className="input-terminal input-terminal-teal w-full px-3 py-2 text-xs"
                 />
               </div>
 
@@ -474,7 +474,7 @@ export default function UserDashboard() {
                   value={websiteInput}
                   onChange={(e) => setWebsiteInput(e.target.value)}
                   placeholder="https://your-agency.io"
-                  className="w-full bg-slate-950 border border-white/5 hover:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-teal-400/50"
+                  className="input-terminal input-terminal-teal w-full px-3 py-2 text-xs"
                 />
               </div>
 
@@ -515,10 +515,10 @@ export default function UserDashboard() {
                 className="space-y-6"
               >
                 {/* Panel 1: Reported Complaints history */}
-                <div className="p-6 bg-slate-900/20 border border-white/5 rounded-2xl space-y-5 shadow-xl">
+                <div className="p-6 bg-slate-900/20 space-y-5 shadow-xl glass-card hud-corners-emerald">
                   <div>
-                    <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-1.5 border-b border-white/5 pb-3">
-                      <FileText className="h-4 w-4 text-amber-500 shrink-0" /> My Reported Complaints ({reporterProblems.length})
+                    <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-2 border-b border-white/5 pb-3">
+                      <span className="p-1.5 bg-amber-500/10 rounded-lg shrink-0"><FileText className="h-3.5 w-3.5 text-amber-500" /></span> 03 // My Reported Complaints ({reporterProblems.length})
                     </h3>
                     <p className="text-[10px] text-slate-500 font-sans mt-2">
                       The exact phrasings and developer complaints you have historically logged to the problem-market fit ledger.
@@ -528,7 +528,7 @@ export default function UserDashboard() {
                   {reporterProblems.length > 0 ? (
                     <div className="space-y-3.5 max-h-[400px] overflow-y-auto pr-1">
                       {reporterProblems.map((prob) => (
-                        <div key={prob.id} className="p-4 bg-slate-950/60 border border-white/5 hover:border-white/10 rounded-xl relative group flex flex-col justify-between">
+                        <div key={prob.id} className="p-4 bg-slate-950/60 border border-white/5 hover:border-white/10 relative group flex flex-col justify-between">
                           <div className="absolute top-3 right-4 font-mono text-[9px] text-slate-600">
                             {new Date(prob.createdAt).toLocaleDateString()}
                           </div>
@@ -551,17 +551,17 @@ export default function UserDashboard() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 border border-dashed border-white/5 rounded-xl text-slate-500 font-mono text-xs uppercase tracking-widest">
+                    <div className="text-center py-12 border border-dashed border-white/5 text-slate-500 font-mono text-xs uppercase tracking-widest">
                       You haven't reported any frustrations yet.
                     </div>
                   )}
                 </div>
 
                 {/* Panel 2: Niches supported ("Me too" list) */}
-                <div className="p-6 bg-slate-900/20 border border-white/5 rounded-2xl space-y-5 shadow-xl">
+                <div className="p-6 bg-slate-900/20 space-y-5 shadow-xl glass-card hud-corners-emerald">
                   <div>
-                    <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-1.5 border-b border-white/5 pb-3">
-                      <Users className="h-4 w-4 text-amber-500 shrink-0" /> Niches I Support (Me Too co-signs: {supportedClusters.length})
+                    <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-2 border-b border-white/5 pb-3">
+                      <span className="p-1.5 bg-amber-500/10 rounded-lg shrink-0"><Users className="h-3.5 w-3.5 text-amber-500" /></span> 04 // Niches I Support (Me Too co-signs: {supportedClusters.length})
                     </h3>
                     <p className="text-[10px] text-slate-500 font-sans mt-2">
                       Active opportunities where you supported the demand. When builders list verified solutions to these groups, you will receive launch notifications.
@@ -574,7 +574,7 @@ export default function UserDashboard() {
                         <Link
                           key={cluster.id}
                           href={`/cluster/${cluster.id}`}
-                          className="p-5 bg-slate-950/60 border border-white/5 hover:border-teal-400/25 rounded-xl group transition-all duration-300 flex flex-col justify-between"
+                          className="p-5 bg-slate-950/60 border border-white/5 hover:border-teal-400/25 group transition-all duration-300 flex flex-col justify-between"
                         >
                           <div>
                             <div className="flex items-center justify-between font-mono text-[9px] tracking-widest uppercase mb-3">
@@ -600,7 +600,7 @@ export default function UserDashboard() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 border border-dashed border-white/5 rounded-xl text-slate-500 font-mono text-xs uppercase tracking-widest">
+                    <div className="text-center py-12 border border-dashed border-white/5 text-slate-500 font-mono text-xs uppercase tracking-widest">
                       You haven't co-signed any niches yet.
                     </div>
                   )}
@@ -620,10 +620,10 @@ export default function UserDashboard() {
                 className="space-y-6"
               >
                 {/* Panel 1: My listed solutions */}
-                <div className="p-6 bg-slate-900/20 border border-white/5 rounded-2xl space-y-5 shadow-xl">
+                <div className="p-6 bg-slate-900/20 space-y-5 shadow-xl glass-card hud-corners-emerald">
                   <div>
-                    <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-1.5 border-b border-white/5 pb-3">
-                      <BookOpen className="h-4 w-4 text-teal-400 shrink-0" /> My Listed Solutions ({builderSolutions.length})
+                    <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-2 border-b border-white/5 pb-3">
+                      <span className="p-1.5 bg-teal-500/10 rounded-lg shrink-0"><BookOpen className="h-3.5 w-3.5 text-teal-400" /></span> 05 // My Listed Solutions ({builderSolutions.length})
                     </h3>
                     <p className="text-[10px] text-slate-500 font-sans mt-2">
                       Your verified products currently listed under crowdsourced demand niches. Click solutions to inspect ratings, reviews, and client logs.
@@ -633,10 +633,10 @@ export default function UserDashboard() {
                   {builderSolutions.length > 0 ? (
                     <div className="space-y-3.5 pr-1">
                       {builderSolutions.map((sol) => (
-                        <div key={sol.id} className="p-5 bg-slate-950/60 border border-white/5 hover:border-white/10 rounded-xl relative group flex flex-col md:flex-row gap-5 items-stretch justify-between">
+                        <div key={sol.id} className="p-5 bg-slate-950/60 border border-white/5 hover:border-white/10 relative group flex flex-col md:flex-row gap-5 items-stretch justify-between">
                           <div className="flex items-start gap-4">
                             {/* Vote metric */}
-                            <div className="flex flex-col items-center justify-center px-4 py-2 bg-slate-900 border border-white/5 rounded-xl min-w-[70px] shrink-0 self-start text-center font-mono">
+                            <div className="flex flex-col items-center justify-center px-4 py-2 bg-slate-900 border border-white/5 min-w-[70px] shrink-0 self-start text-center font-mono">
                               <ArrowUp className="h-4 w-4 text-teal-400 mb-0.5" />
                               <strong className="text-sm font-bold text-slate-200">+{sol.upvotes}</strong>
                               <span className="text-[8px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">NET SCORE</span>
@@ -672,17 +672,17 @@ export default function UserDashboard() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 border border-dashed border-white/5 rounded-xl text-slate-500 font-mono text-xs uppercase tracking-widest">
+                    <div className="text-center py-12 border border-dashed border-white/5 text-slate-500 font-mono text-xs uppercase tracking-widest">
                       You haven't listed any software or hardware product solutions yet.
                     </div>
                   )}
                 </div>
 
                 {/* Panel 2: Live Community Review Feed */}
-                <div className="p-6 bg-slate-900/20 border border-white/5 rounded-2xl space-y-5 shadow-xl">
+                <div className="p-6 bg-slate-900/20 space-y-5 shadow-xl glass-card hud-corners-emerald">
                   <div>
-                    <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-1.5 border-b border-white/5 pb-3">
-                      <MessageSquare className="h-4 w-4 text-teal-400 shrink-0" /> Live Community Review Feed ({builderReviews.length})
+                    <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest block font-bold flex items-center gap-2 border-b border-white/5 pb-3">
+                      <span className="p-1.5 bg-teal-500/10 rounded-lg shrink-0"><MessageSquare className="h-3.5 w-3.5 text-teal-400" /></span> 06 // Live Community Review Feed ({builderReviews.length})
                     </h3>
                     <p className="text-[10px] text-slate-500 font-sans mt-2">
                       Star ratings and written developer feedback submitted historically for any of your listed products.
@@ -692,7 +692,7 @@ export default function UserDashboard() {
                   {builderReviews.length > 0 ? (
                     <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
                       {builderReviews.map((rev, idx) => (
-                        <div key={idx} className="p-4 bg-slate-950/60 border border-white/5 rounded-xl space-y-2">
+                        <div key={idx} className="p-4 bg-slate-950/60 border border-white/5 space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <div className="w-6 h-6 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-[10px] font-mono text-slate-400">
@@ -718,7 +718,7 @@ export default function UserDashboard() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 border border-dashed border-white/5 rounded-xl text-slate-500 font-mono text-xs uppercase tracking-widest">
+                    <div className="text-center py-12 border border-dashed border-white/5 text-slate-500 font-mono text-xs uppercase tracking-widest">
                       No customer reviews have been submitted for your solutions yet.
                     </div>
                   )}

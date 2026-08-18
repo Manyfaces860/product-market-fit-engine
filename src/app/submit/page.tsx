@@ -5,6 +5,7 @@ import { APP_COPY } from '@/lib/config/copy';
 import { ButtonSpinner, PageScanner } from '@/components/Loader';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import AlertModal from '@/components/AlertModal';
+import { RetryToast, type RetryToastItem } from '@/components/RetryToast';
 import { useAuth, SignInButton, Show } from '@/lib/clerk';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -44,11 +45,8 @@ interface DraftResult {
 }
 
 const DEFAULT_TAXONOMY = [
-  { id: 'software-devtools', label: 'Developer Tools & DX', description: 'Problems related to developer experience, API integrations, build tools, and local workflows' },
-  { id: 'software-saas', label: 'SaaS & B2B Productivity', description: 'Administrative bottlenecks, SaaS subscription issues, collaboration overhead, and calendar sync issues' },
-  { id: 'hardware-iot', label: 'Hardware & Smart Devices', description: 'Smart device connectivity, localized network pairing, specialized hardware adapters, and firmware bugs' },
-  { id: 'ecommerce-ops', label: 'E-commerce & Shipping Ops', description: 'Multi-channel inventory syncing, custom label bottlenecks, and automated return processing' },
-  { id: 'ai-operations', label: 'AI & Data Infrastructure', description: 'High LLM latencies, vector storage sync, parsing unstructured data, and token limit cost controls' },
+  { id: 'software-devtools', label: 'Developer Tools & DX', description: 'Friction in local developer workflows, compilation bottlenecks, flaky testing environments, and monorepo configurations.' },
+  { id: 'software-saas', label: 'SaaS & B2B Productivity', description: 'Administrative bottlenecks, calendar coordination headaches, and collaborative document syncing issues.' },
 ];
 
 export default function Home() {
@@ -63,6 +61,17 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [submittingMessage, setSubmittingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  
+  // Retry toasts (Samsung-style top banner) — each retry gets its own independent toast
+  const [retryToasts, setRetryToasts] = useState<RetryToastItem[]>([]);
+
+  const showRetryToast = (attempt: number, context: string) => {
+    setRetryToasts((prev) => [...prev, { id: Date.now() + Math.random(), attempt, maxRetries: 3, context }]);
+  };
+
+  const hideRetryToast = () => {
+    setRetryToasts([]);
+  };
   
   // Custom Alert Modal states
   const [alertModal, setAlertModal] = useState({
@@ -155,7 +164,7 @@ export default function Home() {
           text: inputText,
           draft: true,
         }),
-        onRetry: (attempt) => setLoadingMessage(`Retrying... (Attempt ${attempt}/3)`),
+        onRetry: (attempt) => showRetryToast(attempt, 'signal lost, re-analyzing your problem'),
       });
 
       const data = await response.json();
@@ -173,6 +182,7 @@ export default function Home() {
     } finally {
       setLoading(false);
       setLoadingMessage('');
+      hideRetryToast();
     }
   };
 
@@ -202,7 +212,7 @@ export default function Home() {
           confirmedCategoryDescription: matchingCategoryObj.description,
           confirmedCanonicalText: customCanonical,
         }),
-        onRetry: (attempt) => setSubmittingMessage(`Retrying... (Attempt ${attempt}/3)`),
+        onRetry: (attempt) => showRetryToast(attempt, 'signal lost, re-publishing your report'),
       });
 
       const data = await response.json();
@@ -232,6 +242,7 @@ export default function Home() {
     } finally {
       setSubmitting(false);
       setSubmittingMessage('');
+      hideRetryToast();
     }
   };
 
@@ -271,6 +282,11 @@ export default function Home() {
   return (
     <div className="flex-grow flex flex-col items-center justify-start py-12 px-4 sm:px-6 lg:px-8">
       
+      <RetryToast
+        toasts={retryToasts}
+        onDismiss={(id) => setRetryToasts((prev) => prev.filter((t) => t.id !== id))}
+      />
+      
       {/* Seed Helper for empty DBs */}
       {/* {(
         <div className="mb-8 w-full max-w-xl p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-between gap-4">
@@ -300,9 +316,12 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
         >
-          <span className="font-mono text-[10px] tracking-[0.3em] bg-white/5 border border-white/10 px-3 py-1 rounded-full uppercase text-slate-400">
-            {APP_COPY.home.badge}
-          </span>
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-2 bg-amber-500/10 rounded-xl inline-flex"><Plus className="h-5 w-5 text-amber-500" /></div>
+            <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-amber-500">
+              {APP_COPY.home.badge}
+            </span>
+          </div>
           <h1 className="mt-6 text-4xl sm:text-6xl font-display font-bold tracking-tight leading-tight py-2 bg-gradient-to-r from-amber-400 via-coral-400 to-teal-400 bg-clip-text text-transparent italic select-none">
             {APP_COPY.home.heroTitle}
           </h1>
@@ -313,7 +332,7 @@ export default function Home() {
 
         {/* Input Form Box */}
         <motion.div 
-          className="mx-auto mt-10 max-w-2xl"
+          className="mx-auto mt-10 max-w-3xl"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
@@ -322,73 +341,76 @@ export default function Home() {
             {!draft && !successResult ? (
               <motion.form 
                 onSubmit={handleSubmitDraft}
-                className="relative p-2 bg-slate-900/60 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col md:flex-row gap-2"
+                className="relative bg-slate-900/60 shadow-2xl backdrop-blur-xl focus-within:shadow-[0_0_30px_rgba(245,158,11,0.12)] transition-all duration-300 hud-corners"
                 exit={{ opacity: 0, scale: 0.95 }}
               >
-                <div className="flex-grow flex flex-col items-start px-3 py-2">
+                <div className="flex items-start w-full gap-2 px-4 pt-4 pb-3">
+                  <span className="font-mono text-amber-500 font-bold select-none pt-1 text-sm">$</span>
                   <textarea
                     data-testid="problem-textarea"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     placeholder={APP_COPY.home.inputPlaceholder}
-                    className="w-full bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none resize-none h-20 text-sm py-1"
+                    className="w-full bg-transparent text-slate-100 placeholder-slate-600 focus:outline-none resize-none h-24 font-mono text-sm py-1 leading-relaxed"
                     disabled={loading}
                   />
-                  
-                  {/* Character Counter & Warnings */}
-                  <div className="w-full flex items-center justify-between font-mono text-[10px] text-slate-500 select-none mt-1">
-                    <span>
+                </div>
+
+                {/* Footer: hint + counter on left, button on right */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 pb-4 pt-3 border-t border-white/5">
+                  <div className="flex items-center justify-between font-mono text-[10px] text-slate-500 select-none sm:gap-6">
+                    <span className="truncate">
                       {isQueryTooLong ? (
                         <span className="text-red-500 flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3 inline" /> {APP_COPY.home.characterWarning}
                         </span>
                       ) : (
-                        <span>{APP_COPY.home.inputContextHelp}</span>
+                        <span className="truncate">{APP_COPY.home.inputContextHelp}</span>
                       )}
                     </span>
-                    <span className={isQueryTooLong ? 'text-red-500 font-bold' : ''}>
+                    <span className={`shrink-0 ${isQueryTooLong ? 'text-red-500 font-bold' : ''}`}>
                       {inputText.length}/{MAX_QUERY_CHARS}
                     </span>
                   </div>
-                </div>
 
-                <div className="shrink-0 flex items-center md:justify-end justify-center px-2 py-1">
-                  {isSignedIn ? (
-                    <button
-                      type="submit"
-                      disabled={loading || inputText.trim() === '' || isQueryTooLong}
-                      className="w-full md:w-auto h-12 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 px-6 rounded-xl hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-                    >
-                      {loading ? (
-                        <span className="flex items-center gap-2">
-                          <ButtonSpinner size="sm" />
-                          {loadingMessage || APP_COPY.home.submitButtonLoading}
-                        </span>
-                      ) : (
-                        <>
-                          {APP_COPY.home.submitButtonText} <ArrowRight className="h-4 w-4" />
-                        </>
-                      )}
-                    </button>
-                  ) : (
-                      <Show when={'signed-out'}>
-                        <SignInButton mode="modal">
-                          <button
-                              type="button"
-                              className="w-full md:w-auto h-12 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 px-6 rounded-xl active:scale-95 transition-all cursor-pointer"
-                          >
-                            {APP_COPY.home.submitButtonText}
-                          </button>
-                        </SignInButton>
-                      </Show>
+                  <div className="shrink-0">
+                    {isSignedIn ? (
+                      <button
+                        type="submit"
+                        disabled={loading || inputText.trim() === '' || isQueryTooLong}
+                        className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 px-8 rounded-xl hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-[0_0_25px_rgba(245,158,11,0.3)] disabled:opacity-30 disabled:pointer-events-none"
+                      >
+                        {loading ? (
+                          <span className="flex items-center gap-2">
+                            <ButtonSpinner size="sm" />
+                            {loadingMessage || APP_COPY.home.submitButtonLoading}
+                          </span>
+                        ) : (
+                          <>
+                            {APP_COPY.home.submitButtonText} <ArrowRight className="h-4 w-4" />
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                        <Show when={'signed-out'}>
+                          <SignInButton mode="modal">
+                            <button
+                                type="button"
+                                className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 px-8 rounded-xl active:scale-95 transition-all cursor-pointer"
+                            >
+                              {APP_COPY.home.submitButtonText}
+                            </button>
+                          </SignInButton>
+                        </Show>
 
-                  )}
+                    )}
+                  </div>
                 </div>
               </motion.form>
             ) : draft && !successResult ? (
               // STEP 2: DRAFT RESOLUTION SCREEN (MEET MATCH OR CREATE NEW)
               <motion.div 
-                className="text-left bg-slate-900/95 border-glow border rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-2xl"
+                className="text-left bg-slate-900/95 border-glow shadow-2xl p-6 sm:p-8 backdrop-blur-2xl hud-corners"
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -407,7 +429,7 @@ export default function Home() {
                     </p>
 
                     {/* Matched Cluster Details Box */}
-                    <div className="mt-6 p-5 rounded-xl border border-white/5 bg-slate-950/60 relative overflow-hidden group">
+                    <div className="mt-6 p-5 border border-white/5 bg-slate-950/60 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 p-2 text-[10px] font-mono tracking-widest text-slate-600 bg-white/5 uppercase rounded-bl border-l border-b border-white/5">
                         {APP_COPY.draftResult.clusterLabel}
                       </div>
@@ -443,7 +465,14 @@ export default function Home() {
                         disabled={submitting}
                         className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 px-6 rounded-xl hover:opacity-90 transition-all cursor-pointer"
                       >
-                        {submitting ? submittingMessage || APP_COPY.draftResult.publishButtonLoading : APP_COPY.draftResult.publishButtonText}
+                        {submitting ? (
+                          <span className="flex items-center gap-2">
+                            <ButtonSpinner size="sm" />
+                            {submittingMessage || APP_COPY.draftResult.publishButtonLoading}
+                          </span>
+                        ) : (
+                          APP_COPY.draftResult.publishButtonText
+                        )}
                       </button>
                     </div>
                   </div>
@@ -472,7 +501,7 @@ export default function Home() {
                           type="text"
                           value={customCanonical}
                           onChange={(e) => setCustomCanonical(e.target.value)}
-                          className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500/50"
+                          className="input-terminal w-full px-4 py-2.5 text-xs"
                         />
                       </div>
 
@@ -485,7 +514,7 @@ export default function Home() {
                         <select
                           value={selectedCategory}
                           onChange={(e) => setSelectedCategory(e.target.value)}
-                          className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-amber-500/50 cursor-pointer"
+                          className="input-terminal w-full px-3 py-2.5 text-xs cursor-pointer"
                         >
                           {DEFAULT_TAXONOMY.map((cat) => (
                             <option key={cat.id} value={cat.id} className="bg-slate-950">
@@ -515,7 +544,14 @@ export default function Home() {
                         disabled={submitting}
                         className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-teal-500 to-amber-500 text-slate-950 px-6 rounded-xl hover:from-teal-600 hover:to-amber-600 transition-all cursor-pointer"
                       >
-                        {submitting ? submittingMessage || APP_COPY.draftResult.publishButtonLoading : APP_COPY.draftResult.publishButtonText}
+                        {submitting ? (
+                          <span className="flex items-center gap-2">
+                            <ButtonSpinner size="sm" />
+                            {submittingMessage || APP_COPY.draftResult.publishButtonLoading}
+                          </span>
+                        ) : (
+                          APP_COPY.draftResult.publishButtonText
+                        )}
                       </button>
                     </div>
                   </div>
@@ -524,7 +560,7 @@ export default function Home() {
             ) : (
               // STEP 3: SUCCESS CONFIRMATION MODAL STATE
               <motion.div 
-                className="text-center bg-slate-900/95 border border-teal-500/30 rounded-2xl shadow-2xl p-8 backdrop-blur-2xl max-w-xl mx-auto"
+                className="text-center bg-slate-900/95 shadow-2xl p-8 backdrop-blur-2xl max-w-xl mx-auto hud-corners-teal"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
@@ -567,7 +603,7 @@ export default function Home() {
           {/* Local error panel */}
           {error && (
             <motion.div 
-              className="mt-4 p-4 bg-red-950/40 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-300 text-xs text-left"
+              className="mt-4 p-4 bg-red-950/40 border border-red-500/30 flex items-center gap-2 text-red-300 text-xs text-left"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
@@ -582,8 +618,14 @@ export default function Home() {
       <div className="w-full max-w-6xl mt-12 border-t border-white/5 pt-16">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-display font-bold italic flex items-center gap-2.5">
-              <TrendingUp className="h-5 w-5 text-amber-500" /> {APP_COPY.home.trendingTitle}
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 bg-amber-500/10 rounded-lg"><TrendingUp className="h-4 w-4 text-amber-500" /></div>
+              <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest font-bold">
+                01 // TRENDING SIGNALS
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-display font-bold italic">
+              {APP_COPY.home.trendingTitle}
             </h2>
             <p className="text-slate-400 text-xs sm:text-sm font-mono tracking-wider mt-1">
               {APP_COPY.home.trendingSubtitle}
@@ -603,7 +645,7 @@ export default function Home() {
               <Link 
                 key={cluster.id}
                 href={`/cluster/${cluster.id}`}
-                className="group relative p-6 bg-slate-900/40 border border-white/5 rounded-2xl hover:bg-slate-900/60 hover:border-white/10 transition-all duration-300 shadow-lg flex flex-col justify-between"
+                className="group relative p-6 bg-slate-900/40 hover:bg-slate-900/60 transition-all duration-300 shadow-lg glass-card flex flex-col justify-between hud-corners"
               >
                 <div>
                   <div className="flex items-center justify-between font-mono text-[10px] tracking-widest uppercase mb-3">
@@ -631,7 +673,7 @@ export default function Home() {
         ) : trendingLoading ? (
           <PageScanner message="Scanning database signals..." size="md" />
         ) : (
-          <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-xs uppercase tracking-widest">
+          <div className="text-center py-12 border border-dashed border-white/5 text-slate-500 font-mono text-xs uppercase tracking-widest">
             No reports yet in this space. Be the first voice — every early report gets full visibility once builders start browsing.
           </div>
         )}

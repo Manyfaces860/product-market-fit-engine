@@ -16,7 +16,8 @@ import {
   ArrowUp, 
   Users, 
   ThumbsUp, 
-  Lock 
+  Lock,
+  Info 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HOMEPAGE_COPY } from '@/lib/config/homepage_copy';
@@ -163,7 +164,7 @@ useEffect(() => {
          ========================================================================= */}
       <section className="w-full max-w-6xl text-center pt-12 md:pt-16 flex flex-col items-center justify-center relative">
         <motion.div
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/5 font-mono text-[9px] text-amber-500 font-bold uppercase tracking-[0.2em] mb-6 select-none shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/5 font-mono text-[9px] text-amber-500 font-bold uppercase tracking-[0.2em] mb-6 select-none shadow-[0_0_25px_rgba(245,158,11,0.25)]"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
@@ -190,18 +191,18 @@ useEffect(() => {
         </motion.p>
 
         {/* Maidensail Trust Badge */}
-        <motion.div
+        {/* <motion.div
           className="mt-6 flex justify-center"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.25, duration: 0.6 }}
         >
-          <div className="inline-flex items-center px-4 py-2 rounded-2xl border border-white/5 bg-slate-950/65 hover:border-brand-amber/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] backdrop-blur-xl transition-all duration-300 cursor-pointer">
+          <div className="inline-flex items-center px-4 py-2 border border-white/5 bg-slate-950/65 hover:border-brand-amber/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] backdrop-blur-xl transition-all duration-300 cursor-pointer">
             <a href="https://maidensail.com/startup/needboard" rel="dofollow">
               <img src="https://maidensail.com/badge/needboard.svg" alt="Listed on Maidensail" height="36" />
             </a>
           </div>
-        </motion.div>
+        </motion.div> */}
 
         {/* Hero CTAs */}
         <motion.div
@@ -212,7 +213,7 @@ useEffect(() => {
         >
           <Link
             href="/submit"
-            className="h-12 px-6 flex items-center justify-center gap-2 font-mono text-xs uppercase tracking-wider font-bold bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] cursor-pointer"
+            className="h-12 px-6 flex items-center justify-center gap-2 font-mono text-xs uppercase tracking-wider font-bold bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-[0_0_30px_rgba(245,158,11,0.35)] cursor-pointer"
           >
             <Layers className="h-4 w-4" /> {HOMEPAGE_COPY.hero.ctaValidate}
           </Link>
@@ -228,12 +229,18 @@ useEffect(() => {
       {/* =========================================================================
           💡 ABOUT / WHAT IS IT SECTION
          ========================================================================= */}
-      <section className="w-full max-w-5xl bg-slate-900/20 border border-white/5 p-8 sm:p-12 rounded-3xl backdrop-blur-2xl relative overflow-hidden flex flex-col md:flex-row gap-8 items-center justify-between shadow-xl">
+      <motion.section
+        initial={{ opacity: 0, y: 48 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.15 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="w-full max-w-5xl bg-slate-900/20 p-8 sm:p-12 backdrop-blur-2xl relative overflow-hidden flex flex-col md:flex-row gap-8 items-center justify-between shadow-xl hud-corners">
         <div className="absolute top-0 left-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
         
         <div className="space-y-3 md:max-w-xs shrink-0 text-center md:text-left">
-          <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
-            ABOUT THE PLATFORM
+          <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold flex items-center justify-center md:justify-start gap-2">
+            <span className="p-1.5 bg-amber-500/10 rounded-lg"><Info className="h-3.5 w-3.5 text-amber-500" /></span>
+            01 // ABOUT THE PLATFORM
           </span>
           <h2 className="text-2xl sm:text-3xl font-display font-bold italic text-slate-100">
             {HOMEPAGE_COPY.about.title}
@@ -246,20 +253,26 @@ useEffect(() => {
         <p className="text-slate-300 text-sm leading-relaxed max-w-xl font-sans text-center md:text-left border-t md:border-t-0 md:border-l border-white/5 pt-6 md:pt-0 md:pl-8">
           {HOMEPAGE_COPY.about.description}
         </p>
-      </section>
+      </motion.section>
 
       {/* =========================================================================
           🛠️ SYSTEM MODULES / FEATURES SECTION
          ========================================================================= */}
       <motion.section 
         layout 
+        initial={{ opacity: 0, y: 48 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.1 }}
         transition={{ type: 'spring', stiffness: 220, damping: 28 }}
         className="w-full max-w-6xl space-y-16"
       >
         <div className="text-center space-y-3">
-          <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
-            CORE ENGINE CAPABILITIES
-          </span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="p-2 bg-amber-500/10 rounded-xl inline-flex"><Layers className="h-5 w-5 text-amber-500" /></div>
+            <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
+              02 // CORE ENGINE CAPABILITIES
+            </span>
+          </div>
           <h2 className="text-3xl sm:text-4xl font-display font-bold italic text-slate-100">
             {HOMEPAGE_COPY.features.title}
           </h2>
@@ -287,7 +300,7 @@ useEffect(() => {
           </div>
           
           {/* Interactive Search Console Mock */}
-          <div className="p-6 bg-slate-900/50 border border-white/10 rounded-2xl shadow-2xl relative font-mono text-xs select-none">
+          <div className="p-6 bg-slate-900/50 shadow-2xl relative font-mono text-xs select-none hud-corners">
             <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4 text-[10px] text-slate-500 uppercase font-bold tracking-wider">
               <span>{HOMEPAGE_COPY.features.list[0]?.interactiveTitle}</span>
               <div className="flex gap-1">
@@ -363,7 +376,7 @@ useEffect(() => {
             </p>
           </div>
 
-          <div className="p-6 bg-slate-900/50 border border-white/10 rounded-2xl shadow-2xl relative font-mono text-xs select-none">
+          <div className="p-6 bg-slate-900/50 shadow-2xl relative font-mono text-xs select-none hud-corners">
             <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4 text-[10px] text-slate-500 uppercase font-bold tracking-wider">
               <span>{HOMEPAGE_COPY.features.list[1]?.interactiveTitle}</span>
               <div className="flex gap-1.5">
@@ -414,7 +427,7 @@ useEffect(() => {
           </div>
 
           {/* Interactive Voting Console Mock */}
-          <div className="p-6 bg-slate-900/50 border border-white/10 rounded-2xl shadow-2xl relative select-none">
+          <div className="p-6 bg-slate-900/50 shadow-2xl relative select-none hud-corners">
             <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-5 font-mono text-[10px] text-slate-500 uppercase font-bold tracking-wider">
               <span>{HOMEPAGE_COPY.features.list[2]?.interactiveTitle}</span>
             </div>
@@ -473,11 +486,20 @@ useEffect(() => {
       {/* =========================================================================
           👥 THE ECOSYSTEM (REPORTERS VS BUILDERS) SECTION
          ========================================================================= */}
-      <section className="w-full max-w-6xl space-y-16">
+      <motion.section
+        initial={{ opacity: 0, y: 48 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.15 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="w-full max-w-6xl space-y-16"
+      >
         <div className="text-center space-y-3">
-          <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
-            THE PLATFORM PARTICIPANTS
-          </span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="p-2 bg-amber-500/10 rounded-xl inline-flex"><Users className="h-5 w-5 text-amber-500" /></div>
+            <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
+              03 // THE PLATFORM PARTICIPANTS
+            </span>
+          </div>
           <h2 className="text-3xl sm:text-4xl font-display font-bold italic text-slate-100">
             {HOMEPAGE_COPY.ecosystem.title}
           </h2>
@@ -489,11 +511,14 @@ useEffect(() => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
           
           {/* Reporter Card */}
-          <div className="p-8 bg-slate-900/30 border border-white/5 rounded-2xl flex flex-col justify-between shadow-xl relative overflow-hidden backdrop-blur-3xl group hover:border-white/10 transition-all duration-300">
+          <div className="p-8 bg-slate-900/30 flex flex-col justify-between shadow-xl relative overflow-hidden backdrop-blur-3xl group transition-all duration-300 hud-corners">
             <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
             <div className="space-y-6">
               <div className="space-y-1">
-                <span className="font-mono text-[9px] text-amber-500 uppercase tracking-widest font-bold block">ROLE DEFINITION</span>
+                <span className="font-mono text-[9px] text-amber-500 uppercase tracking-widest font-bold block flex items-center gap-2">
+                  <span className="p-1.5 bg-amber-500/10 rounded-lg"><Users className="h-3.5 w-3.5 text-amber-500" /></span>
+                  01 // ROLE DEFINITION
+                </span>
                 <h3 className="text-2xl font-bold font-display italic text-slate-100">{HOMEPAGE_COPY.ecosystem.reporters.title}</h3>
                 <p className="text-xs text-slate-400 font-mono tracking-wide">{HOMEPAGE_COPY.ecosystem.reporters.subtitle}</p>
               </div>
@@ -522,11 +547,14 @@ useEffect(() => {
           </div>
 
           {/* Builder Card */}
-          <div className="p-8 bg-slate-900/30 border border-white/5 rounded-2xl flex flex-col justify-between shadow-xl relative overflow-hidden backdrop-blur-3xl group hover:border-white/10 transition-all duration-300">
+          <div className="p-8 bg-slate-900/30 flex flex-col justify-between shadow-xl relative overflow-hidden backdrop-blur-3xl group transition-all duration-300 hud-corners">
             <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 rounded-full blur-2xl pointer-events-none" />
             <div className="space-y-6">
               <div className="space-y-1">
-                <span className="font-mono text-[9px] text-teal-400 uppercase tracking-widest font-bold block">ROLE PROMOTION</span>
+                <span className="font-mono text-[9px] text-teal-400 uppercase tracking-widest font-bold block flex items-center gap-2">
+                  <span className="p-1.5 bg-teal-500/10 rounded-lg"><Layers className="h-3.5 w-3.5 text-teal-400" /></span>
+                  02 // ROLE PROMOTION
+                </span>
                 <h3 className="text-2xl font-bold font-display italic text-slate-100">{HOMEPAGE_COPY.ecosystem.builders.title}</h3>
                 <p className="text-xs text-slate-400 font-mono tracking-wide">{HOMEPAGE_COPY.ecosystem.builders.subtitle}</p>
               </div>
@@ -555,19 +583,28 @@ useEffect(() => {
           </div>
 
         </div>
-      </section>
+      </motion.section>
 
       {/* =========================================================================
           📊 ACTIVE PROBLEM CAROUSEL / LIVE SIGNALS SECTION
          ========================================================================= */}
-      <section className="w-full max-w-6xl space-y-12">
+      <motion.section
+        initial={{ opacity: 0, y: 48 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.15 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="w-full max-w-6xl space-y-12"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
           <div>
-            <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
-              PLATFORM TELEMETRY
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-display font-bold italic flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-amber-500" /> {HOMEPAGE_COPY.activeSignals.title}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-amber-500/10 rounded-xl inline-flex"><TrendingUp className="h-5 w-5 text-amber-500" /></div>
+              <span className="font-mono text-[10px] text-amber-500 uppercase tracking-widest block font-bold">
+                04 // PLATFORM TELEMETRY
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-display font-bold italic">
+              {HOMEPAGE_COPY.activeSignals.title}
             </h2>
             <p className="text-slate-400 text-xs sm:text-sm font-mono tracking-wider mt-1">
               {HOMEPAGE_COPY.activeSignals.subtitle}
@@ -587,7 +624,7 @@ useEffect(() => {
               <Link 
                 key={cluster.id}
                 href={`/cluster/${cluster.id}`}
-                className="group relative p-6 bg-slate-900/40 border border-white/5 rounded-2xl hover:bg-slate-900/60 hover:border-white/10 transition-all duration-300 shadow-lg flex flex-col justify-between"
+                className="group relative p-6 bg-slate-900/40 hover:bg-slate-900/60 transition-all duration-300 shadow-lg glass-card flex flex-col justify-between hud-corners"
               >
                 <div>
                   <div className="flex items-center justify-between font-mono text-[10px] tracking-widest uppercase mb-3">
@@ -615,11 +652,11 @@ useEffect(() => {
         ) : loadingNiches ? (
           <PageScanner message="Scanning database signals..." size="md" /> // 🚀 Stunning centered loader!
         ) : (
-          <div className="text-center py-16 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-xs uppercase tracking-widest">
+          <div className="text-center py-16 border border-dashed border-white/5 text-slate-500 font-mono text-xs uppercase tracking-widest">
             Nobody's reported a problem yet — yours could be the first thing builders see. 
           </div>
         )}
-      </section>
+      </motion.section>
 
     </div>
   );

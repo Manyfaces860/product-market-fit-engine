@@ -499,14 +499,14 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
         <div className="lg:col-span-2 space-y-8">
           
           {/* Canonical cluster block */}
-          <div className="p-8 bg-slate-900/60 border border-white/5 rounded-2xl shadow-xl relative overflow-hidden">
+          <div className="p-8 bg-slate-900/60 shadow-xl relative overflow-hidden glass-card hud-corners-coral">
             
             {/* Ambient subtle glow background */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
             <div className="flex items-center justify-between gap-4 font-mono text-[10px] tracking-widest uppercase mb-4 text-slate-400 select-none">
               <span className="text-amber-500 font-bold">{cluster.categoryLabel}</span>
-              <span>{APP_COPY.clusterDetail.matchHeader} ({cluster.memberCount} Reports)</span>
+              <span>00 // {APP_COPY.clusterDetail.matchHeader} ({cluster.memberCount} Reports)</span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-display font-bold text-slate-100 italic leading-relaxed pr-6">
@@ -522,7 +522,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                 {cluster.sampleVariants.map((variant, i) => (
                   <motion.li 
                     key={i} 
-                    className="p-4 bg-slate-950/40 rounded-xl border border-white/5 text-sm text-slate-300 italic leading-relaxed hover:border-white/10 transition-colors"
+                    className="p-4 bg-slate-950/40 border border-white/5 text-sm text-slate-300 italic leading-relaxed hover:border-white/10 transition-colors"
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
@@ -580,7 +580,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                     return (
                       <motion.div
                         key={sol.id}
-                        className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl flex flex-col gap-4 hover:border-white/10 transition-all duration-300 shadow-xl animate-fade-in"
+                        className="p-6 bg-slate-900/40 flex flex-col gap-4 transition-all duration-300 shadow-xl glass-card animate-fade-in hud-corners-coral"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                       >
@@ -768,7 +768,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                               {showReviewForm === sol.id && (
                                 <motion.form
                                   onSubmit={(e) => handleReviewSubmit(e, sol.id)}
-                                  className="p-4 bg-slate-950/40 rounded-xl border border-white/5 space-y-4"
+                                  className="p-4 bg-slate-950/40 border border-white/5 space-y-4"
                                   initial={{ opacity: 0, y: -5 }}
                                   animate={{ opacity: 1, y: 0 }}
                                 >
@@ -802,7 +802,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                                       value={revText}
                                       onChange={(e) => setRevText(e.target.value)}
                                       placeholder={APP_COPY.reviews.reviewTextPlaceholder}
-                                      className="w-full bg-slate-905/40 bg-slate-950 border border-white/10 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-amber-500 h-16 resize-none"
+                                      className="input-terminal w-full p-3 text-xs h-16 resize-none"
                                       required
                                     />
                                   </div>
@@ -819,12 +819,12 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                                         value={revName}
                                         onChange={(e) => setRevName(e.target.value)}
                                         placeholder={APP_COPY.reviews.reviewerNamePlaceholder}
-                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                                        className="input-terminal w-full px-3 py-1.5 text-xs"
                                       />
                                     </div>
 
                                     {reviewError && (
-                                      <div className="p-2 bg-red-950/40 border border-red-500/30 rounded-xl flex items-center gap-1.5 text-red-300 text-[10px] text-left">
+                                      <div className="p-2 bg-red-950/40 border border-red-500/30 flex items-center gap-1.5 text-red-300 text-[10px] text-left">
                                         <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                                         <span>{reviewError}</span>
                                       </div>
@@ -866,7 +866,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                                 /* Reviews List */
                                 <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                                   {solutionReviews[sol.id].map((rev) => (
-                                    <div key={rev._id || rev.createdAt} className="p-3.5 bg-slate-950/30 border border-white/5 rounded-xl space-y-1.5 text-left">
+                                    <div key={rev._id || rev.createdAt} className="p-3.5 bg-slate-950/30 border border-white/5 space-y-1.5 text-left">
                                       <div className="flex items-center justify-between gap-4 flex-wrap">
                                         <div className="flex items-center gap-2">
                                           <span className="text-xs font-bold text-slate-300">{rev.userName}</span>
@@ -897,7 +897,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                   })}
               </div>
             ) : (
-              <div className="p-8 border border-dashed border-white/5 rounded-2xl text-center flex flex-col items-center justify-center gap-3">
+              <div className="p-8 border border-dashed border-white/5 text-center flex flex-col items-center justify-center gap-3">
                 <p className="text-xs text-slate-400 max-w-md font-sans leading-relaxed">
                   {APP_COPY.solutions.noSolutions}
                 </p>
@@ -939,7 +939,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                   <Link
                     key={adj.id}
                     href={`/cluster/${adj.id}`}
-                    className="p-5 bg-slate-900/30 border border-white/5 rounded-xl hover:bg-slate-900/50 hover:border-white/10 transition-colors block"
+                    className="p-5 bg-slate-900/30 hover:bg-slate-900/50 transition-colors glass-card block hud-corners-coral"
                   >
                     <div className="flex justify-between font-mono text-[8px] text-slate-500 uppercase mb-2">
                       <span>{adj.categoryLabel}</span>
@@ -959,7 +959,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
         <div className="space-y-6">
           
           {/* Me Too Interactive card */}
-          <div className="p-6 bg-slate-900/80 border-glow border rounded-2xl shadow-xl backdrop-blur-xl relative">
+          <div className="p-6 bg-slate-900/80 border-glow shadow-xl backdrop-blur-xl relative hud-corners-coral">
             {isCreator ? (
               <>
                 <div className="absolute top-0 right-0 p-2.5">
@@ -972,7 +972,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                   You are the original reporter of this problem cluster.
                 </p>
                 <div className="mt-6">
-                  <div className="p-4 bg-teal-500/10 border border-teal-500/25 rounded-xl text-center text-teal-400">
+                  <div className="p-4 bg-teal-500/10 border border-teal-500/25 text-center text-teal-400">
                     <Check className="mx-auto h-6 w-6 text-teal-400 mb-1" />
                     <span className="font-mono text-xs uppercase font-bold block">Ownership Verified</span>
                     <span className="text-[10px] text-slate-300 leading-normal block mt-1">
@@ -1008,7 +1008,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                                 handleMeTooSubmit({ preventDefault: () => {} } as any);
                               }}
                               disabled={submitting}
-                              className="w-full h-11 bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 font-mono text-xs uppercase tracking-wider font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                              className="w-full h-11 bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 font-mono text-xs uppercase tracking-wider font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_25px_rgba(245,158,11,0.3)] disabled:opacity-30 disabled:pointer-events-none"
                             >
                               {submitting ? (
                                 <span className="flex items-center gap-2">
@@ -1039,7 +1039,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                               value={customPhrasing}
                               onChange={(e) => setCustomPhrasing(e.target.value)}
                               placeholder={APP_COPY.clusterDetail.meTooInputPlaceholder}
-                              className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                              className="input-terminal w-full p-3 text-xs resize-none"
                               rows={3}
                               required
                             />
@@ -1055,9 +1055,16 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                                 data-testid="me-too-submit-button"
                                 type="submit"
                                 disabled={submitting || customPhrasing.trim() === ''}
-                                className="w-1/2 h-9 bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 font-mono text-[10px] uppercase tracking-wider font-bold rounded-lg active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                                className="w-1/2 h-9 bg-gradient-to-r from-brand-amber to-brand-coral text-slate-950 font-mono text-[10px] uppercase tracking-wider font-bold rounded-lg active:scale-95 transition-all flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                               >
-                                {submitting ? 'Submitting...' : 'Add & Publish'}
+                                {submitting ? (
+                                  <span className="flex items-center gap-2">
+                                    <ButtonSpinner size="xs" />
+                                    Submitting...
+                                  </span>
+                                ) : (
+                                  'Add & Publish'
+                                )}
                               </button>
                             </div>
                           </motion.form>
@@ -1067,7 +1074,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                     ) : (
                       <motion.div 
                         key="voted-success" 
-                        className="p-4 bg-teal-500/10 border border-teal-500/25 rounded-xl text-center text-teal-400"
+                        className="p-4 bg-teal-500/10 border border-teal-500/25 text-center text-teal-400"
                         initial={{ scale: 0.95 }}
                         animate={{ scale: 1 }}
                       >
@@ -1083,7 +1090,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                   {/* Local Me Too action error panel */}
                   {meTooError && (
                     <motion.div 
-                      className="mt-4 p-3.5 bg-red-950/40 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-300 text-[10px] text-left"
+                      className="mt-4 p-3.5 bg-red-950/40 border border-red-500/30 flex items-center gap-2 text-red-300 text-[10px] text-left"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                     >
@@ -1097,7 +1104,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
           {/* Share metadata */}
-          <div className="p-4 bg-slate-900/30 border border-white/5 rounded-xl font-mono text-[9px] tracking-wide text-slate-500 space-y-2 select-none uppercase">
+          <div className="p-4 bg-slate-900/30 border border-white/5 font-mono text-[9px] tracking-wide text-slate-500 space-y-2 select-none uppercase">
             <div>CLUSTER REFERENCE ID: {cluster.id}</div>
             <div>CREATED COORDINATES: {new Date(cluster.createdAt).toLocaleDateString()}</div>
             <div>LAST SIGNAL FORTIFY: {new Date(cluster.lastUpdatedAt).toLocaleDateString()}</div>
@@ -1122,7 +1129,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Modal Dialog Content */}
             <motion.div
-              className="relative bg-slate-900 border border-white/10 rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl overflow-hidden text-left"
+              className="relative bg-slate-900 max-w-lg w-full p-6 sm:p-8 shadow-2xl overflow-hidden text-left hud-corners-coral"
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -1199,7 +1206,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                         value={solName}
                         onChange={(e) => setSolName(e.target.value)}
                         placeholder={APP_COPY.solutions.productNamePlaceholder}
-                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 select-text"
+                        className="input-terminal w-full px-4 py-2.5 text-xs select-text"
                         required
                       />
                     </div>
@@ -1214,7 +1221,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                         value={solUrl}
                         onChange={(e) => setSolUrl(e.target.value)}
                         placeholder={APP_COPY.solutions.productUrlPlaceholder}
-                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 select-text"
+                        className="input-terminal w-full px-4 py-2.5 text-xs select-text"
                         required
                       />
                     </div>
@@ -1230,7 +1237,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                         value={solIconUrl}
                         onChange={(e) => setSolIconUrl(e.target.value)}
                         placeholder="e.g., https://my-app.com/logo.png"
-                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 select-text"
+                        className="input-terminal w-full px-4 py-2.5 text-xs select-text"
                       />
                     </div>
 
@@ -1243,7 +1250,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                         value={solDesc}
                         onChange={(e) => setSolDesc(e.target.value)}
                         placeholder={APP_COPY.solutions.descriptionPlaceholder}
-                        className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-amber-500 select-text resize-none h-20"
+                        className="input-terminal w-full p-3 text-xs select-text resize-none h-20"
                         required
                       />
                     </div>
@@ -1259,12 +1266,12 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                         value={solBuilderName}
                         onChange={(e) => setSolBuilderName(e.target.value)}
                         placeholder={APP_COPY.solutions.founderNamePlaceholder}
-                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 select-text"
+                        className="input-terminal w-full px-4 py-2.5 text-xs select-text"
                       />
                     </div>
 
                     {solutionError && (
-                      <div className="p-3 bg-red-950/40 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-300 text-xs">
+                      <div className="p-3 bg-red-950/40 border border-red-500/30 flex items-center gap-2 text-red-300 text-xs">
                         <AlertTriangle className="h-4 w-4 shrink-0" />
                         <span>{solutionError}</span>
                       </div>
@@ -1284,7 +1291,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                       <button
                         type="submit"
                         disabled={submittingSolution}
-                        className="h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-teal-500 to-amber-500 text-slate-950 px-6 rounded-xl hover:opacity-95 cursor-pointer"
+                        className="h-11 flex items-center justify-center gap-2 font-mono text-xs tracking-wider uppercase font-bold bg-gradient-to-r from-teal-500 to-amber-500 text-slate-950 px-6 rounded-xl hover:opacity-95 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                       >
                         {submittingSolution ? (
                           <span className="flex items-center gap-2">

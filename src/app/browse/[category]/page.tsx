@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Layers, ChevronRight, TrendingUp, Users, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Layers, ChevronRight, TrendingUp, Users, AlertTriangle, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { APP_COPY } from '@/lib/config/copy';
 import { PageScanner } from '@/components/Loader';
@@ -26,12 +26,17 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
       categoryDes = staticCategories[i].label
     }
   }
+  const isComingSoon = staticCategories.some(c => c.id === category && c.status === 'coming-soon');
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
+    if (isComingSoon) {
+      setLoading(false);
+      return;
+    }
     async function loadCategoryClusters() {
       setLoading(true);
       setError(null);
@@ -50,7 +55,7 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
       }
     }
     loadCategoryClusters();
-  }, [category, refreshTrigger]);
+  }, [category, refreshTrigger, isComingSoon]);
 
   const activeCategory = clusters[0] || null;
 
@@ -70,9 +75,12 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
 
       {/* Header */}
       <div className="mb-12 border-b border-white/5 pb-8">
-        <span className="font-mono text-[10px] tracking-[0.3em] text-amber-500 uppercase font-bold flex items-center gap-1.5">
-          <Layers className="h-3.5 w-3.5" /> Market Segment
-        </span>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="p-2 bg-amber-500/10 rounded-xl inline-flex"><Layers className="h-5 w-5 text-amber-500" /></div>
+          <span className="font-mono text-[10px] tracking-[0.3em] text-amber-500 uppercase font-bold">
+            00 // Market Segment
+          </span>
+        </div>
         <h1 className="mt-2 text-3xl sm:text-5xl font-display font-bold italic tracking-tight text-slate-100">
           {activeCategory?.categoryLabel || category.replace('-', ' ')}
         </h1>
@@ -82,7 +90,26 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
       </div>
 
       {/* Clusters List */}
-      {loading ? (
+      {isComingSoon ? (
+        <div className="p-10 bg-slate-900/20 shadow-xl glass-card hud-corners-violet max-w-2xl select-none">
+          <div className="p-2.5 bg-white/5 text-slate-600 inline-flex mb-4"><Lock className="h-5 w-5" /></div>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-200 italic font-display">
+            {categoryDes || category.replace('-', ' ')} — Coming Soon
+          </h2>
+          <p className="text-sm text-slate-400 mt-3 leading-relaxed">
+            We're not collecting problems in this vertical yet. Right now NeedBoard is focused on
+            Developer Tools &amp; DX and SaaS &amp; B2B Productivity — report the pain points you
+            experience there, and this niche will light up when we expand.
+          </p>
+          <Link
+            href="/browse"
+            className="inline-flex items-center gap-2 font-mono text-xs text-slate-400 hover:text-slate-100 transition-colors group cursor-pointer mt-8"
+          >
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            {APP_COPY.browse.backLink}
+          </Link>
+        </div>
+      ) : loading ? (
         <PageScanner message="Querying customer complaints..." />
       ) : error ? (
         <div className="text-center py-20 px-4 select-none animate-fade-in max-w-xl mx-auto">
@@ -128,7 +155,7 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
               >
                 <Link
                   href={`/cluster/${cluster.id}`}
-                  className="group block p-6 bg-slate-900/40 border border-white/5 rounded-2xl hover:bg-slate-900/70 hover:border-white/10 transition-all duration-300 shadow-xl"
+                  className="group block p-6 bg-slate-900/40 hover:bg-slate-900/70 transition-all duration-300 shadow-xl glass-card hud-corners-violet"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     
@@ -168,7 +195,7 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
           })}
         </div>
       ) : (
-        <div className="text-center py-24 border border-dashed border-white/5 rounded-2xl max-w-xl mx-auto p-8">
+        <div className="text-center py-24 border border-dashed border-white/5 max-w-xl mx-auto p-8">
           <p className="font-mono text-sm text-slate-400">NeedBoard just opened here. Report the first "{categoryDes}" problem and put this vertical on the map.</p>
           <Link
             href="/submit"

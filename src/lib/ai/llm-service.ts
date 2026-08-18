@@ -2,6 +2,7 @@ import { getAIServiceConfig } from './config';
 import { ILLMService, ClassificationResult } from './types';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import staticCategories, { focusedCategories } from './static-categories';
 
 export class LLMService implements ILLMService {
   private config = getAIServiceConfig();
@@ -43,53 +44,63 @@ export class LLMService implements ILLMService {
 
     const provider = this.config.llmProvider;
 
+    // 🚀 Only the currently-focused categories are open for LLM classification.
+    // Anything that does not fit these is rejected as out-of-scope for now.
+    const activeCategories = focusedCategories.map(c => ({
+      id: c.id,
+      label: c.label,
+      description: c.description,
+    }));
+    const activeCategoryIds = activeCategories.map(c => c.id);
+
     const systemPrompt = `You are an AI classification assistant for a platform called NeedBoard (Problem-Market Fit discovery engine for builders, developers, and founders).
 Your job is to read an input user frustration or problem, validate it, classify it, and generate a clean, generalized, representative "canonical" description.
 
 NeedBoard's Mission:
 We help developers, software engineers, and hardware builders find real-world, commercializable pain points (in software, developer experience, hardware, digital operations, physical gadgets, etc.) that they can solve by building software products (SaaS), physical hardware, or operational tools.
 
+CURRENT FOCUS:
+Right now NeedBoard is ONLY collecting problems that fit one of these two active categories:
+${activeCategories.map((c) => `- "${c.id}": ${c.label} (${c.description})`).join('\n')}
+
 Validation Rules:
-You MUST determine if the input is a valid, understandable, real-world, product-addressable problem.
-- Mark "isValid": true ONLY if the input is a meaningful statement describing a real-world friction point that could theoretically be solved by a business, a software tool, a physical product, a developer utility, or a commercial service.
+You MUST determine if the input is a valid, understandable, real-world, product-addressable problem that fits ONE of the two active categories above.
+- Mark "isValid": true ONLY if the input describes a friction point that clearly fits Developer Tools & DX or SaaS & B2B Productivity.
 - Mark "isValid": false if the input is:
   1. Gibberish / Spam / Unreadable: Random strings of letters (e.g., "asdfafsasf", "qwertyuiop"), cryptographic keys or hashes, single letters, random lists of numbers, or code snippets with zero context.
   2. Too Personal / Interpersonal: Interpersonal relationship issues (e.g., "my boyfriend didn't text me back") or raw emotional venting with no business product angle.
   3. Existential / Philosophical: (e.g., "why does the universe exist").
   4. Completely unsolvable by products/services: (e.g., general weather venting like "I hate when it rains").
-
-Existing Categories:
-${existingCategories.map((c) => `- "${c.id}": ${c.label} (${c.description})`).join('\n')}
+  5. OUT OF SCOPE FOR NOW: Any problem that would belong to a category we are not yet collecting (hardware, e-commerce, fintech, HR, health, education, real estate, etc.). Do NOT propose new categories — reject these with a friendly out-of-scope reason.
 
 Classification Instructions (Only applicable if isValid is true):
-1. Determine if the problem fits into one of the existing categories.
-2. If it fits, use that existing category ID, label, and description.
-3. If it does NOT fit any existing category well, propose a NEW category suitable for a builder or developer target. The new category ID should be lowercase, kebab-case (e.g., "developer-tools", "smart-home", "ecommerce-ops", "micro-saas").
-4. Create a clean, concise, generalized "canonicalText" that represents this problem. It should be a single, well-written sentence that multiple people with similar issues would agree describes their general problem (e.g., instead of "my Webpack config takes forever to compile," use "Slow hot-reload compilation times when building large frontend codebases").
+1. Determine if the problem fits "software-devtools" or "software-saas".
+2. Use that category's ID, label, and description exactly as listed above.
+3. Create a clean, concise, generalized "canonicalText" that represents this problem. It should be a single, well-written sentence that multiple people with similar issues would agree describes their general problem (e.g., instead of "my Webpack config takes forever to compile," use "Slow hot-reload compilation times when building large frontend codebases").
 
 Response Format:
 You MUST respond with a single, valid JSON object and absolutely nothing else. No markdown wrappers (like \`\`\`json), no preamble, no conversational filler.
 JSON keys:
-- "isValid": boolean (true if valid and product/service solvable; false if gibberish, spam, too personal, or non-commercializable)
+- "isValid": boolean (true if valid and fits one of the two active categories; false otherwise)
 - "rejectionReason": string (Only provide this if isValid is false; explain why it was rejected in a clear, friendly, single sentence)
-- "category": string (the selected or proposed category ID; use empty string "" if isValid is false)
-- "categoryLabel": string (the selected or proposed category label; use empty string "" if isValid is false)
-- "categoryDescription": string (the selected or proposed category description; use empty string "" if isValid is false)
+- "category": string (one of the two active category IDs; use empty string "" if isValid is false)
+- "categoryLabel": string (the active category label; use empty string "" if isValid is false)
+- "categoryDescription": string (the active category description; use empty string "" if isValid is false)
 - "canonicalText": string (the clean, generalized canonical representative text; use empty string "" if isValid is false)
 
 Example response for VALID input:
 {
   "isValid": true,
   "category": "software-devtools",
-  "categoryLabel": "Software & Developer Tools",
-  "categoryDescription": "Problems related to developer experience, API integrations, build tools, and cloud infrastructure.",
+  "categoryLabel": "Developer Tools & DX",
+  "categoryDescription": "Friction in local developer workflows, compilation bottlenecks, flaky testing environments, and monorepo configurations.",
   "canonicalText": "Slow hot-reload compilation times when modifying styling assets in monorepos"
 }
 
-Example response for INVALID input:
+Example response for INVALID (out of scope) input:
 {
   "isValid": false,
-  "rejectionReason": "Input appears to be meaningless gibberish or spam.",
+  "rejectionReason": "That sounds like a hardware problem — we're only collecting developer tools and SaaS productivity issues right now.",
   "category": "",
   "categoryLabel": "",
   "categoryDescription": "",
@@ -130,6 +141,20 @@ Example response for INVALID input:
         cleanText = cleanText.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
       }
       const result: ClassificationResult = JSON.parse(cleanText);
+
+      // 🛡️ Guard: never classify into a category outside our current focus
+      if (result.isValid && !activeCategoryIds.includes(result.category)) {
+        const fallback = staticCategories.find(c => c.id === result.category);
+        return {
+          isValid: false,
+          rejectionReason: `We're only collecting problems in Developer Tools & DX and SaaS & B2B Productivity right now${fallback ? ` — "${fallback.label}" is coming soon` : ''}.`,
+          category: '',
+          categoryLabel: '',
+          categoryDescription: '',
+          canonicalText: ''
+        };
+      }
+
       return result;
     } catch (err) {
       console.error('Failed to parse LLM JSON classification result. Raw output:', responseText);

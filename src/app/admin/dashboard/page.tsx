@@ -330,9 +330,12 @@ export default function AdminDashboardPage() {
       {/* Back Link */}
       <div className="flex items-center justify-between border-b border-white/5 pb-6">
         <div>
-          <span className="font-mono text-[10px] tracking-[0.3em] text-red-500 uppercase font-bold">
-            Executive Admin Console
-          </span>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-2 bg-red-500/10 rounded-xl inline-flex"><ShieldAlert className="h-5 w-5 text-red-500" /></div>
+            <span className="font-mono text-[10px] tracking-[0.3em] text-red-500 uppercase font-bold">
+              00 // Executive Admin Console
+            </span>
+          </div>
           <h1 className="mt-1 text-2xl sm:text-4xl font-display font-bold italic tracking-tight text-slate-100">
             System Operations Dashboard
           </h1>
@@ -349,7 +352,7 @@ export default function AdminDashboardPage() {
       {/* Grid: 4 Core Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Card 1: Total Groups */}
-        <div className="p-6 bg-slate-900/50 border border-white/5 rounded-2xl relative overflow-hidden shadow-xl">
+        <div className="p-6 bg-slate-900/50 relative overflow-hidden shadow-xl glass-card hud-corners-cyan">
           <div className="absolute top-4 right-4 p-2 bg-amber-500/10 rounded-xl text-amber-500">
             <Database className="h-5 w-5" />
           </div>
@@ -359,7 +362,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Card 2: Total Solutions */}
-        <div className="p-6 bg-slate-900/50 border border-white/5 rounded-2xl relative overflow-hidden shadow-xl">
+        <div className="p-6 bg-slate-900/50 relative overflow-hidden shadow-xl glass-card hud-corners-cyan">
           <div className="absolute top-4 right-4 p-2 bg-teal-500/10 rounded-xl text-teal-400">
             <Activity className="h-5 w-5" />
           </div>
@@ -369,7 +372,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Card 3: User Reviews */}
-        <div className="p-6 bg-slate-900/50 border border-white/5 rounded-2xl relative overflow-hidden shadow-xl">
+        <div className="p-6 bg-slate-900/50 relative overflow-hidden shadow-xl glass-card hud-corners-cyan">
           <div className="absolute top-4 right-4 p-2 bg-blue-500/10 rounded-xl text-blue-400">
             <Users className="h-5 w-5" />
           </div>
@@ -379,7 +382,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Card 4: Estimated Cost */}
-        <div className="p-6 bg-slate-900/50 border border-white/5 rounded-2xl relative overflow-hidden shadow-xl bg-gradient-to-r from-red-500/5 to-transparent">
+        <div className="p-6 bg-slate-900/50 relative overflow-hidden shadow-xl glass-card hud-corners-cyan bg-gradient-to-r from-red-500/5 to-transparent">
           <div className="absolute top-4 right-4 p-2 bg-red-500/10 rounded-xl text-red-500">
             <DollarSign className="h-5 w-5" />
           </div>
@@ -394,10 +397,10 @@ export default function AdminDashboardPage() {
         <div className="space-y-8">
           
           {/* Section: AI Cost Allocations */}
-          <div className="p-6 bg-slate-900/30 border border-white/5 rounded-2xl shadow-xl space-y-6">
+          <div className="p-6 bg-slate-900/30 shadow-xl space-y-6 glass-card hud-corners-cyan">
             <div>
               <h3 className="text-lg font-display font-bold text-slate-200 italic flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-red-500" /> AI API Transaction Frequency
+                <span className="p-2 bg-red-500/10 rounded-xl shrink-0"><BarChart3 className="h-4 w-4 text-red-500" /></span> 01 // AI API Transaction Frequency
               </h3>
               <p className="text-slate-400 text-xs font-mono uppercase tracking-wider">
                 DISTRIBUTION OF PIPELINE ACTIONS BY TRANSACTION VOLUME
@@ -445,10 +448,10 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Section: Tokens & Problem Sizing */}
-          <div className="p-6 bg-slate-900/30 border border-white/5 rounded-2xl shadow-xl space-y-6">
+          <div className="p-6 bg-slate-900/30 shadow-xl space-y-6 glass-card hud-corners-cyan">
             <div>
               <h3 className="text-lg font-display font-bold text-slate-200 italic flex items-center gap-2">
-                <FileText className="h-5 w-5 text-amber-500" /> Input Payload & Token Statistics
+                <span className="p-2 bg-amber-500/10 rounded-xl shrink-0"><FileText className="h-4 w-4 text-amber-500" /></span> 02 // Input Payload & Token Statistics
               </h3>
               <p className="text-slate-400 text-xs font-mono uppercase tracking-wider">
                 RAW USER DESCRIPTION SIZES TO ASSESS MAX CHARACTER BOUNDARIES
@@ -475,7 +478,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="p-4 bg-slate-950/40 border border-white/5 rounded-xl font-mono text-[9px] text-slate-400 leading-normal uppercase">
+            <div className="p-4 bg-slate-950/40 border border-white/5 font-mono text-[9px] text-slate-400 leading-normal uppercase">
               💡 <strong className="text-slate-200">Strategic insight:</strong> Your character limit is set to <strong className="text-slate-200">500</strong>. 
               With an average input size of <strong className="text-slate-200">{stats.avgProblemCharCount} characters</strong>, users are utilizing <strong className="text-slate-200">{((stats.avgProblemCharCount / 500) * 100).toFixed(0)}%</strong> of their space. Your limits are perfectly sized for semantic clarity without token waste.
             </div>
@@ -484,10 +487,10 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Right Column: Niche Popularity & Growth Areas */}
-        <div className="p-6 bg-slate-900/30 border border-white/5 rounded-2xl shadow-xl space-y-6">
+        <div className="p-6 bg-slate-900/30 shadow-xl space-y-6 glass-card hud-corners-cyan">
           <div>
             <h3 className="text-lg font-display font-bold text-slate-200 italic flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-teal-400" /> Market Vertical Interest Map
+              <span className="p-2 bg-teal-500/10 rounded-xl shrink-0"><TrendingUp className="h-4 w-4 text-teal-400" /></span> 03 // Market Vertical Interest Map
             </h3>
             <p className="text-slate-400 text-xs font-mono uppercase tracking-wider">
               NICHES RANKED BY NUMBER OF TOTAL CUSTOMER REPORTS AND COMPLAINTS
@@ -523,10 +526,10 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* MANUAL PROBLEM CURATION & OVERRIDES */}
-      <div className="p-6 bg-slate-900/30 border border-white/5 rounded-2xl shadow-xl space-y-6 text-left">
+      <div className="p-6 bg-slate-900/30 shadow-xl space-y-6 glass-card text-left hud-corners-cyan">
         <div>
           <h3 className="text-xl font-display font-bold text-slate-200 italic flex items-center gap-2">
-            <Layers className="h-5 w-5 text-amber-500" /> Manual Problem Curation & Overrides
+            <span className="p-2 bg-amber-500/10 rounded-xl shrink-0"><Layers className="h-4 w-4 text-amber-500" /></span> 04 // Manual Problem Curation & Overrides
           </h3>
           <p className="text-slate-400 text-xs font-mono uppercase tracking-wider">
             REASSIGN MISCLASSIFIED USER FRUSTRATIONS TO OPTIMIZE CLUSTER COEFFICIENTS
@@ -542,7 +545,7 @@ export default function AdminDashboardPage() {
             <select
               value={selectedClusterId}
               onChange={(e) => setSelectedClusterId(e.target.value)}
-              className="w-full bg-slate-950 border border-white/10 rounded-xl px-2 py-2.5 text-xs text-slate-300 focus:outline-none focus:border-amber-500 cursor-pointer"
+              className="input-terminal w-full px-2 py-2.5 text-xs cursor-pointer"
             >
               <option value=""> Choose a group to inspect </option>
               {uniqueClusters.map((c) => (
@@ -579,7 +582,7 @@ export default function AdminDashboardPage() {
                 Fetching individual complaints...
               </div>
             ) : selectedClusterId === '' ? (
-              <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-[9px] uppercase tracking-widest">
+              <div className="text-center py-12 border border-dashed border-white/5 text-slate-500 font-mono text-[9px] uppercase tracking-widest">
                 Select a problem group on the left to show user complaints
               </div>
             ) : rawProblems.length === 0 ? (
@@ -595,7 +598,7 @@ export default function AdminDashboardPage() {
                   return (
                     <div 
                       key={prob.id} 
-                      className="p-4 bg-slate-950/40 border border-white/5 rounded-xl space-y-3 text-left hover:border-white/10 transition-colors"
+                      className="p-4 bg-slate-950/40 border border-white/5 space-y-3 text-left hover:border-white/10 transition-colors"
                     >
                       <div>
                         <div className="flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase pb-1.5">
@@ -618,7 +621,7 @@ export default function AdminDashboardPage() {
                             const val = e.target.value;
                             setReassignTargets(prev => ({ ...prev, [prob.id]: val }));
                           }}
-                          className="bg-slate-950 border border-white/5 hover:border-white/10 rounded-lg px-2.5 py-1 text-[10px] text-slate-300 focus:outline-none cursor-pointer max-w-[220px]"
+                          className="input-terminal px-2.5 py-1 text-[10px] cursor-pointer max-w-[220px]"
                         >
                           <option value=""> Choose target group </option>
                           {uniqueClusters

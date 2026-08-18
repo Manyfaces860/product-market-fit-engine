@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Playfair_Display } from 'next/font/google';
+import { Geist, Geist_Mono, Space_Grotesk } from 'next/font/google';
 import { ClerkProvider } from '@/lib/clerk';
 import Header from '@/components/Header';
 import AmbientCanvas from '@/components/AmbientCanvas';
@@ -15,10 +15,10 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-const playfair = Playfair_Display({
-  variable: '--font-playfair',
+const spaceGrotesk = Space_Grotesk({
+  variable: '--font-space-grotesk',
   subsets: ['latin'],
-  style: ['normal', 'italic'],
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -36,11 +36,13 @@ export default function RootLayout({
     >
       <html
         lang="en"
-        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col bg-slate-950 text-slate-100 selection:bg-amber-500/30 selection:text-slate-100">
           {/* Custom Ambient Background & Interactive Cursor */}
           <AmbientCanvas />
+          {/* CRT scanline overlay */}
+          <div className="scanlines" aria-hidden="true" />
           {/* <CustomCursor /> */}
           
           <Header />

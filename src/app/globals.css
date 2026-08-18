@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  /* Full terminal console: the sans token is remapped to mono so font-sans
+     utility classes inherit the monospace treatment everywhere */
+  --font-sans: var(--font-geist-mono);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-playfair);
+  /* Big display headings: tech grotesk (Space Grotesk) */
+  --font-display: var(--font-space-grotesk);
   
   --color-brand-amber: #f59e0b;
   --color-brand-coral: #ef4444;
@@ -11,11 +14,98 @@
 }
 
 body {
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-h1, h2, h3, .font-display {
-  font-family: var(--font-playfair), ui-serif, Georgia, serif;
+/* Terminal scrollbars — square corners everywhere */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 158, 11, 0.4) rgb(2 6 23 / 0.6);
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+}
+::-webkit-scrollbar-track {
+  background: rgb(2 6 23 / 0.6);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.35);
+  border: none;
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.55);
+  border-radius: 0;
+}
+::-webkit-scrollbar-corner {
+  background: rgb(2 6 23 / 0.6);
+  border-radius: 0;
+}
+
+/* CRT scanline overlay (fixed above content, pointer-transparent) */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.025) 0px,
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* HUD corner brackets for instrument panels — color varies per page via --hud-c */
+.hud-corners {
+  position: relative;
+  --hud-c: rgba(245, 158, 11, 0.65);
+}
+.hud-corners-teal {
+  position: relative;
+  --hud-c: rgba(45, 212, 191, 0.65);
+}
+.hud-corners-violet {
+  position: relative;
+  --hud-c: rgba(139, 92, 246, 0.65);
+}
+.hud-corners-coral {
+  position: relative;
+  --hud-c: rgba(239, 68, 68, 0.65);
+}
+.hud-corners-emerald {
+  position: relative;
+  --hud-c: rgba(16, 185, 129, 0.65);
+}
+.hud-corners-cyan {
+  position: relative;
+  --hud-c: rgba(6, 182, 212, 0.65);
+}
+.hud-corners::before,
+.hud-corners-teal::before,
+.hud-corners-violet::before,
+.hud-corners-coral::before,
+.hud-corners-emerald::before,
+.hud-corners-cyan::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--hud-c), var(--hud-c)) top left / 14px 1px,
+    linear-gradient(var(--hud-c), var(--hud-c)) top left / 1px 14px,
+    linear-gradient(var(--hud-c), var(--hud-c)) top right / 14px 1px,
+    linear-gradient(var(--hud-c), var(--hud-c)) top right / 1px 14px,
+    linear-gradient(var(--hud-c), var(--hud-c)) bottom left / 14px 1px,
+    linear-gradient(var(--hud-c), var(--hud-c)) bottom left / 1px 14px,
+    linear-gradient(var(--hud-c), var(--hud-c)) bottom right / 14px 1px,
+    linear-gradient(var(--hud-c), var(--hud-c)) bottom right / 1px 14px;
+  background-repeat: no-repeat;
 }
 
 /* Custom animated gradient backgrounds */
@@ -29,6 +119,40 @@ h1, h2, h3, .font-display {
 .border-glow {
   box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
   border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* Terminal-style data-entry surfaces (all inputs, textareas, selects) */
+.input-terminal {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  background-color: rgb(2 6 23 / 0.8);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 0;
+  color: rgb(226 232 240);
+  outline: none;
+  transition: border-color 200ms, box-shadow 200ms, background-color 200ms;
+}
+
+.input-terminal::placeholder {
+  color: rgb(71 85 105);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.input-terminal:focus {
+  border-color: rgb(245 158 11 / 0.6);
+  box-shadow: 0 0 20px rgb(245 158 11 / 0.18);
+  background-color: rgb(2 6 23 / 0.95);
+}
+
+.input-terminal-teal:focus {
+  border-color: rgb(45 212 191 / 0.6);
+  box-shadow: 0 0 20px rgb(20 184 166 / 0.2);
+}
+
+/* Glass card surface — frosted panels over the ambient canvas */
+.glass-card {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 /* Hide standard system cursor globally on fine-pointer devices when custom cursor mounts */

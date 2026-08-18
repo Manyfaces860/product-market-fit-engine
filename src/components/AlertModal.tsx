@@ -61,7 +61,7 @@ export default function AlertModal({
 
           {/* Modal Card Content */}
           <motion.div
-            className="relative bg-slate-900 border border-white/10 rounded-2xl max-w-sm w-full p-6 sm:p-8 shadow-2xl overflow-hidden text-center backdrop-blur-2xl"
+            className="relative bg-slate-900 max-w-sm w-full p-6 sm:p-8 shadow-2xl overflow-hidden text-center backdrop-blur-2xl hud-corners"
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}

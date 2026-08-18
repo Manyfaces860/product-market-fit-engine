@@ -17,6 +17,7 @@ import {
   MongoClusterDocument as ClusterRecord, 
   MongoProblemDocument as ProblemRecord 
 } from '@/lib/models/schema';
+import { isFocusedCategory } from '@/lib/ai/static-categories';
 
 const SIMILARITY_THRESHOLD = Number(process.env.NEXT_PUBLIC_SIMILARITY_THRESHOLD || 0.70);
 
@@ -53,10 +54,11 @@ export async function POST(req: NextRequest) {
     // 4. Generate embedding for the input text
     const queryEmbedding = await embeddingService.getEmbedding(text);
 
-    // 5. Search for nearest existing clusters
+    // 5. Search for nearest existing clusters (only within currently-focused categories)
     const matches = await searchClustersForSubmit(queryEmbedding, 1);
     const topMatch = matches[0];
-    const isMatch = topMatch && topMatch.score !== undefined && topMatch.score >= SIMILARITY_THRESHOLD;
+    const isMatch = topMatch && topMatch.score !== undefined && topMatch.score >= SIMILARITY_THRESHOLD
+      && isFocusedCategory(topMatch.category);
 
     // --- CASE A: DRAFT MODE ---
     // Return proposed categorization/clustering without writing anything to DB

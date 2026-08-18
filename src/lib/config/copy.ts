@@ -12,12 +12,12 @@ export const APP_COPY = {
   },
 
   home: {
-    badge: "Collective Problem Clustering",
+    badge: "00 // Collective Problem Clustering",
     heroTitle: "Find Problems Worth Solving.",
     heroSubtitle: "We collect and organize real customer complaints, software bugs, and product frustrations into active groups. Explore what people are struggling with and build solutions with pre-validated demand.",
-    inputPlaceholder: "Describe a product gap, software issue, or frustration you encountered (e.g., inventory counts get out of sync when selling on Shopify and Etsy)...",
+    inputPlaceholder: "Describe a problem or frustration (e.g., inventory sync breaks across Shopify and Etsy)...",
     characterWarning: "Input exceeds limits. Please shorten it.",
-    inputContextHelp: "Be as detailed as possible to help our system group your voice with others facing the same issue.",
+    inputContextHelp: "Details help us group your voice with others facing the same issue.",
     submitButtonText: "Submit Problem",
     submitButtonLoading: "Analyzing...",
     signInToSubmitText: "Sign In to Submit",
@@ -56,7 +56,7 @@ export const APP_COPY = {
     backToNiche: "Back to Niche",
     matchHeader: "Active Customer Pain Point",
     evidenceTitle: "Real Customer Evidence",
-    evidenceSubtitle: "EXACT PHRASINGS AND RAW QUOTES REPORTED BY REAL USERS",
+    evidenceSubtitle: "01 // EXACT PHRASINGS AND RAW QUOTES REPORTED BY REAL USERS",
     meTooTitle: "I Experience This Too",
     meTooDesc: "Help validate this pain point! If you or your team have faced this exact problem, click below to add your voice and increase its priority for builders.",
     meTooInputPlaceholder: "Optional: Describe how you personally experience this issue in your own words...",
@@ -66,7 +66,7 @@ export const APP_COPY = {
     
     // Adjacent/Related
     adjacentTitle: "Related Customer Pain Points",
-    adjacentSubtitle: "SIMILAR BUSINESS OPPORTUNITIES AND GAPS IN THE SAME NICHE",
+    adjacentSubtitle: "03 // SIMILAR BUSINESS OPPORTUNITIES AND GAPS IN THE SAME NICHE",
   },
 
   draftResult: {
@@ -96,7 +96,7 @@ export const APP_COPY = {
 
   solutions: {
     tabTitle: "Active Solutions",
-    tabSubtitle: "PRODUCTS AND SERVICES CREATED TO RESOLVE THIS SPECIFIC PROBLEM",
+    tabSubtitle: "02 // PRODUCTS AND SERVICES CREATED TO RESOLVE THIS SPECIFIC PROBLEM",
     addSolutionButton: "⚡ I Built a Solution",
     noSolutions: "No solutions have been listed for this problem group yet. Built something to solve this? Click above to put your product in front of this pre-validated audience!",
     formTitle: "Submit Your Product Solution",

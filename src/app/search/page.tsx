@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Search, ArrowRight, AlertTriangle, ChevronRight, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_COPY } from '@/lib/config/copy';
-import { PageScanner } from '@/components/Loader';
+import { PageScanner, ButtonSpinner } from '@/components/Loader';
 import { useAuth, SignInButton } from '@/lib/clerk';
 
 const MAX_QUERY_CHARS = 500;
@@ -62,13 +62,16 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8 selection:bg-teal-500/25 selection:text-teal-200">
       
       {/* Header */}
       <div className="mb-10 text-center">
-        <span className="font-mono text-[10px] tracking-[0.3em] text-teal-500 uppercase font-bold">
-          Validation Search
-        </span>
+        <div className="flex flex-col items-center gap-2">
+          <div className="p-2 bg-teal-500/10 rounded-xl inline-flex"><Search className="h-5 w-5 text-teal-400" /></div>
+          <span className="font-mono text-[10px] tracking-[0.3em] text-teal-500 uppercase font-bold">
+            00 // Validation Search
+          </span>
+        </div>
         <h1 className="mt-2 text-3xl sm:text-5xl font-display font-bold italic tracking-tight text-slate-100">
           {APP_COPY.search.title}
         </h1>
@@ -81,52 +84,58 @@ export default function SearchPage() {
       <div className="max-w-2xl mx-auto mb-16">
         <form 
           onSubmit={handleSearch}
-          className="relative p-1.5 bg-slate-900/60 border border-white/10 focus-within:border-teal-500/50 hover:border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center transition-all duration-300 focus-within:shadow-[0_0_30px_rgba(20,184,166,0.15)] focus-within:bg-slate-900/80"
         >
-          <div className="flex-grow flex items-center pl-3">
-            <Search className="h-5 w-5 text-slate-500 shrink-0" />
-            <input
-              data-testid="search-input"
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={APP_COPY.search.inputPlaceholder}
-              className="w-full bg-transparent border-none text-slate-100 placeholder-slate-500 focus:outline-none text-sm py-3 pl-2"
-              disabled={loading}
-            />
+          <div className="relative p-1.5 bg-slate-900/60 shadow-2xl backdrop-blur-xl flex items-center transition-all duration-300 focus-within:shadow-[0_0_30px_rgba(20,184,166,0.15)] focus-within:bg-slate-900/80 hud-corners-teal">
+            <div className="flex-grow flex items-center pl-3">
+              <span className="font-mono text-teal-400 font-bold shrink-0 select-none">$</span>
+              <input
+                data-testid="search-input"
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={APP_COPY.search.inputPlaceholder}
+                className="w-full bg-transparent border-none text-slate-100 placeholder-slate-600 focus:outline-none font-mono text-sm py-3 pl-2"
+                disabled={loading}
+              />
+            </div>
           </div>
 
-          {isSignedIn ? (
-            <button
-              type="submit"
-              disabled={loading || query.trim() === '' || isQueryTooLong}
-              className="h-10 w-28 shrink-0 font-mono text-[10px] tracking-wider uppercase font-bold bg-white/10 hover:bg-white/15 text-slate-100 rounded-lg active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1 disabled:opacity-50 disabled:pointer-events-none"
-            >
-              {loading ? APP_COPY.search.searchingText : 'Search'}
-            </button>
-          ) : (
-            <SignInButton mode="modal">
+          <div className="mt-3 flex items-center justify-end gap-3">
+            {isSignedIn ? (
               <button
-                type="button"
-                className="h-10 w-30 shrink-0 font-mono text-[10px] tracking-wider uppercase font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1"
+                type="submit"
+                disabled={loading || query.trim() === '' || isQueryTooLong}
+                className="h-10 shrink-0 flex items-center justify-center gap-2 font-mono text-[10px] tracking-wider uppercase font-bold bg-gradient-to-r from-teal-500 to-amber-500 text-slate-950 px-5 rounded-lg hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-[0_0_25px_rgba(20,184,166,0.3)] disabled:opacity-50 disabled:pointer-events-none"
               >
-                Search
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <ButtonSpinner size="xs" />
+                    {APP_COPY.search.searchingText}
+                  </span>
+                ) : (
+                  <><Search className="h-3.5 w-3.5" /> Search</>
+                )}
               </button>
-            </SignInButton>
-          )}
+            ) : (
+              <SignInButton mode="modal">
+                <button
+                  type="button"
+                  className="h-10 shrink-0 flex items-center justify-center gap-2 font-mono text-[10px] tracking-wider uppercase font-bold bg-gradient-to-r from-teal-500 to-amber-500 text-slate-950 px-5 rounded-lg hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-[0_0_25px_rgba(20,184,166,0.3)]"
+                >
+                  <Search className="h-3.5 w-3.5" /> Search
+                </button>
+              </SignInButton>
+            )}
+          </div>
         </form>
 
-        {/* Character Check & Counter */}
-        <div className="mt-2 flex items-center justify-between font-mono text-[10px] text-slate-500 px-2 select-none">
-          <span>
-            {isQueryTooLong ? (
-              <span className="text-red-500 flex items-center gap-1 font-bold">
-                <AlertTriangle className="h-3 w-3" /> Search description exceeds max character limits. Shorten it!
-              </span>
-            ) : (
-              <span>Calculates cosine similarity to cluster centroids.</span>
-            )}
-          </span>
+        {/* Character Counter */}
+        <div className="mt-2 flex items-center justify-end font-mono text-[10px] text-slate-500 px-2 select-none">
+          {isQueryTooLong && (
+            <span className="text-red-500 flex items-center gap-1 font-bold mr-3">
+              <AlertTriangle className="h-3 w-3" /> Search description exceeds max character limits. Shorten it!
+            </span>
+          )}
           <span className={isQueryTooLong ? 'text-red-500 font-bold' : ''}>
             {query.length}/{MAX_QUERY_CHARS}
           </span>
@@ -134,7 +143,7 @@ export default function SearchPage() {
 
         {/* Local Error message */}
         {error && (
-          <div className="mt-4 p-4 bg-red-950/40 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-300 text-xs text-left">
+          <div className="mt-4 p-4 bg-red-950/40 border border-red-500/30 flex items-center gap-2 text-red-300 text-xs text-left">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -158,7 +167,7 @@ export default function SearchPage() {
               className="space-y-6"
             >
               <h3 className="font-mono text-xs text-slate-400 uppercase tracking-widest border-b border-white/5 pb-2">
-                {APP_COPY.search.resultsTitle}:
+                00 // {APP_COPY.search.resultsTitle}:
               </h3>
               
               <div className="space-y-4">
@@ -170,7 +179,7 @@ export default function SearchPage() {
                     <Link
                       key={cluster.id}
                       href={`/cluster/${cluster.id}`}
-                      className="group flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-slate-900/40 border border-white/5 rounded-2xl hover:bg-slate-900/60 hover:border-white/10 transition-all duration-300 shadow-xl gap-4"
+                      className="group flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-slate-900/40 hover:bg-slate-900/60 transition-all duration-300 shadow-xl glass-card gap-4 hud-corners"
                     >
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
@@ -201,13 +210,13 @@ export default function SearchPage() {
             </div>
           ) : query !== '' && !loading ? (
             <div 
-              className="text-center py-16 border border-dashed border-white/5 rounded-2xl font-mono text-xs uppercase text-slate-500 tracking-widest px-4"
+              className="text-center py-16 border border-dashed border-white/5 font-mono text-xs uppercase text-slate-500 tracking-widest px-4"
             >
               {APP_COPY.search.noResults}
             </div>
           ) : (
             <motion.div 
-              className="text-center py-16 border border-dashed border-white/5 rounded-2xl text-slate-500 font-mono text-[10px] tracking-[0.2em] uppercase select-none flex flex-col items-center justify-center gap-2"
+              className="text-center py-16 border border-dashed border-white/5 text-slate-500 font-mono text-[10px] tracking-[0.2em] uppercase select-none flex flex-col items-center justify-center gap-2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >

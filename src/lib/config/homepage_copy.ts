@@ -6,7 +6,7 @@
  */
 export const HOMEPAGE_COPY = {
   hero: {
-    badge: "WHERE REAL PROBLEMS MEET REAL BUILDERS",
+    badge: "00 // WHERE REAL PROBLEMS MEET REAL BUILDERS",
     title: "Stop guessing what to build. Start building what people are already asking for.",
     subtitle: "NeedBoard is a public marketplace of real, everyday problems reported by developers and teams — bugs that block them, workflows that waste hours, gaps no tool fills yet. Builders come here to see exactly what's broken and who's waiting for a fix, so every product starts with proof that someone wants it.",
     ctaValidate: "Report a Problem",
@@ -26,7 +26,7 @@ export const HOMEPAGE_COPY = {
     list: [
       {
         id: "explore",
-        badge: "01 / FIND YOUR PROBLEM, INSTANTLY",
+        badge: "01 // FIND YOUR PROBLEM, INSTANTLY",
         title: "Search by Meaning, Not Just Words",
         desc: "You shouldn't have to guess the 'right' words to find a problem that already exists. Describe your frustration in your own words, and NeedBoard understands what you mean, not just what you typed — so 'flaky E2E script' finds the same group as 'Cypress tests failing randomly.' This means less duplicate reporting for you, and a clearer, bigger signal for builders.",
         interactiveTitle: "How Search Will Work",
@@ -36,7 +36,7 @@ export const HOMEPAGE_COPY = {
       },
       {
         id: "submit",
-        badge: "02 / REPORT IT IN SECONDS",
+        badge: "02 // REPORT IT IN SECONDS",
         title: "Turn Your Frustration Into an Opportunity",
         desc: "Hit a wall with some tool or process? Tell us about it in plain language. NeedBoard instantly checks if others have reported the same thing — if so, your report adds weight to an existing problem; if not, you've just created a brand-new opportunity for a builder to solve. Either way, your frustration stops being wasted time and starts becoming visible demand.",
         interactiveTitle: "Log Frustration Lifecycle",
@@ -48,7 +48,7 @@ export const HOMEPAGE_COPY = {
       },
       {
         id: "curate",
-        badge: "03 / THE BEST SOLUTIONS RISE TO THE TOP",
+        badge: "03 // THE BEST SOLUTIONS RISE TO THE TOP",
         title: "Real Users Decide What's Actually Good",
         desc: "Once builders start posting solutions, the community takes over. People who've faced the problem can upvote, downvote, and leave honest reviews on what actually worked. No paid placements, no marketing spend deciding the winner — just real feedback from people who needed a fix, separating genuinely useful tools from the noise.",
         interactiveTitle: "How Voting Will Work",

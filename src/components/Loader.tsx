@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
 import { useUser } from '@/lib/clerk';
 
 interface LoaderProps {
@@ -27,95 +25,64 @@ export function ButtonSpinner({ size = 'sm' }: { size?: 'xs' | 'sm' | 'md' }) {
   );
 }
 
+const BAR_CHARS = 10;
+
 /**
- * A stunning, futuristic, full-section or full-page radar scanner loader.
- * Perfect for matching vector spaces, compile statuses, or database queries.
- * Features a multi-stage personalized loading timeline (0s -> 1.5s -> 3s)
- * with direct browser reload suggestions.
+ * A compact ASCII terminal loading bar (~80px wide) that fills left-to-right
+ * with an amber -> red gradient, plus a blinking cursor and staged status text.
  */
 export function PageScanner({ message = 'Analyzing...', size = 'md' }: LoaderProps) {
   const { user } = useUser();
   const userName = user ? `${user.firstName || ''}`.trim() : 'Builder';
+  const [progress, setProgress] = useState(0);
   const [displayMessage, setDisplayMessage] = useState(message);
 
   useEffect(() => {
-    setDisplayMessage(message); // Sync with prop changes
+    setDisplayMessage(message);
 
-    // ⏳ Stage 2 (after 1.5s): Reassure the user we are still actively working
+    // Fill the ASCII bar with irregular increments for an organic feel
+    const interval = setInterval(() => {
+      setProgress((p) => Math.min(100, p + 1 + Math.random() * 3));
+    }, 100);
+
+    // Stage 2 (after 3s): Reassure the user we are still actively working
     const timer1 = setTimeout(() => {
       setDisplayMessage('trying our best to get you data...');
     }, 3000);
 
-    // ⏳ Stage 3 (after 3.0s): Suggest a browser reload and personalize with their name!
+    // Stage 3 (after 6s): Suggest a browser reload and personalize with their name!
     const timer2 = setTimeout(() => {
       setDisplayMessage(`you might have to re load the page, our server is stuck, perform a quick reload ${userName}`);
     }, 6000);
 
     return () => {
+      clearInterval(interval);
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
   }, [message, userName]);
 
-  const scaleClass = {
-    sm: 'w-6 h-6',
-    md: 'w-10 h-10',
-    lg: 'w-16 h-16',
-  }[size];
+  const barSize = size === 'sm' ? 'text-[8px] w-16' : 'text-[10px] w-20';
+  const filled = Math.round((progress / 100) * BAR_CHARS);
 
-  // If size is 'sm' (used inline), use tighter padding. 
-  // Otherwise, use 'min-h-[60vh]' to ensure perfect vertical and horizontal page centering on viewports! 🚀
-  const containerClass = size === 'sm' 
+  // If size is 'sm' (used inline), use tighter padding.
+  // Otherwise, use 'min-h-[60vh]' to ensure perfect vertical and horizontal page centering on viewports!
+  const containerClass = size === 'sm'
     ? 'flex flex-col items-center justify-center py-6 px-4 w-full relative'
     : 'flex flex-col items-center justify-center min-h-[60vh] py-16 px-4 w-full relative';
 
   return (
     <div className={containerClass}>
-      <div className={`relative ${scaleClass} flex items-center justify-center`}>
-        
-        {/* Modern, high-contrast pulsing ring radiating outwards */}
-        <motion.div
-          className="absolute inset-0 rounded-full border border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
-          initial={{ scale: 0.8, opacity: 0.8 }}
-          animate={{
-            scale: [0.8, 2.2, 0.8],
-            opacity: [0.8, 0, 0.8],
-          }}
-          transition={{
-            duration: 2.0,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-
-        {/* Second out-of-phase pulse ring to add depth and AI feel */}
-        <motion.div
-          className="absolute inset-0 rounded-full border border-teal-400/40 shadow-[0_0_15px_rgba(45,212,191,0.15)]"
-          initial={{ scale: 0.8, opacity: 0.8 }}
-          animate={{
-            scale: [0.8, 1.5, 0.8],
-            opacity: [0.3, 0.8, 0.3],
-          }}
-          transition={{
-            duration: 2.0,
-            repeat: Infinity,
-            delay: 0.6,
-            ease: 'easeInOut',
-          }}
-        />
-
-        {/* Core glowing dot (Brand Gradient) */}
-        <div className="absolute inset-1 bg-gradient-to-tr from-brand-amber via-brand-coral to-brand-teal rounded-full shadow-[0_0_20px_rgba(245,158,11,0.35)] flex items-center justify-center">
-          <div className="w-full h-full bg-slate-950/20 rounded-full flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-slate-950" style={{ fill: 'rgba(15, 23, 42, 0.85)' }} />
-          </div>
-        </div>
-
+      <div className={`${barSize} flex items-center justify-center font-mono leading-none whitespace-nowrap select-none`}>
+        <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 bg-clip-text text-transparent">
+          {'█'.repeat(filled)}
+        </span>
+        <span className="text-slate-700">{'░'.repeat(BAR_CHARS - filled)}</span>
+        {/* <span className="text-amber-500 animate-pulse">▊</span> */}
       </div>
 
-      {/* Modern, clean monospace text below */}
       {displayMessage && (
-        <p className="mt-8 font-mono text-[9px] tracking-[0.2em] text-slate-400 font-bold uppercase text-center animate-pulse max-w-md leading-relaxed">
+        <p className="mt-3 font-mono text-[9px] tracking-[0.2em] text-slate-400 font-bold uppercase text-center animate-pulse max-w-md leading-relaxed">
           {displayMessage}
         </p>
       )}
