@@ -38,8 +38,6 @@ yarn-error.log*
 
 # coding agents
 .claude/
-CLAUDE.md
-AGENTS.md
 
 # typescript
 *.tsbuildinfo
