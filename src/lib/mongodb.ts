@@ -111,7 +111,7 @@ function createMockMongoDb(): any {
     }
 
     return {
-      async find(filter: any) {
+      find(filter: any) {
         let list = mockStore[name];
         // Simple filter matching
         if (filter && typeof filter === 'object') {

@@ -21,9 +21,29 @@ const spaceGrotesk = Space_Grotesk({
   weight: ['400', '500', '600', '700'],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const SITE_DESCRIPTION = 'A public marketplace of real, everyday problems reported by developers and teams. Builders come here to see exactly what\'s broken and who\'s waiting for a fix.';
+
 export const metadata: Metadata = {
-  title: 'NeedBoard — Collective Problem Clustering',
-  description: 'See the noise become a pattern. A platform where scattered frustrations cluster into visible collective signal.',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'NeedBoard — Collective Problem Clustering',
+    template: '%s | NeedBoard',
+  },
+  description: SITE_DESCRIPTION,
+  keywords: ['product market fit', 'problem discovery', 'startup ideas', 'developer pain points', 'saas ideas', 'build in public'],
+  openGraph: {
+    type: 'website',
+    url: SITE_URL,
+    siteName: 'NeedBoard',
+    title: 'NeedBoard — Collective Problem Clustering',
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'NeedBoard — Collective Problem Clustering',
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
