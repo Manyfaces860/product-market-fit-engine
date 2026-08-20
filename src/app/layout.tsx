@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Space_Grotesk } from 'next/font/google';
 import { ClerkProvider } from '@/lib/clerk';
 import Header from '@/components/Header';
 import AmbientCanvas from '@/components/AmbientCanvas';
+import { getSiteUrl } from '@/lib/site-url';
 import './globals.css';
 
 const geistSans = Geist({
@@ -21,7 +22,7 @@ const spaceGrotesk = Space_Grotesk({
   weight: ['400', '500', '600', '700'],
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const SITE_URL = getSiteUrl();
 const SITE_DESCRIPTION = 'A public marketplace of real, everyday problems reported by developers and teams. Builders come here to see exactly what\'s broken and who\'s waiting for a fix.';
 
 export const metadata: Metadata = {

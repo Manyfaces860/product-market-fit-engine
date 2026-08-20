@@ -19,6 +19,7 @@ There is no `test` script in package.json. The one test file (`tests/rate-limit.
 ```bash
 node --experimental-strip-types --test tests/rate-limit.test.ts
 ```
+This requires **Node.js ≥22.6** (`--experimental-strip-types` doesn't exist before that). The CI workflow (`.github/workflows/e2e.yml`) runs on Node 20 and `package.json` declares no `engines` field, so this command is a local-only convenience for now, not something CI can run as-is.
 
 `scripts/test-query.ts` and `scripts/test-retrieval.ts` are standalone manual scripts for poking at the live Pinecone index (they load `.env` via `dotenv` and call `getPineconeIndex()` directly) — not part of an automated suite.
 
@@ -42,7 +43,7 @@ P-X1 clusters user-submitted "problem" statements into semantic groups using vec
 1. Clerk `auth()` gate → reject if unauthenticated.
 2. Per-user sliding-window rate limit (`src/lib/rate-limit.ts`, Upstash Redis-backed, mocked when Redis env vars are absent) — separate minute and daily windows, both must pass.
 3. `validateQuery()` (`src/lib/validation.ts`) enforces `NEXT_PUBLIC_MAX_QUERY_CHARS`.
-4. Embed the text, `searchClusters()` for nearest centroid; if cosine score ≥ `NEXT_PUBLIC_SIMILARITY_THRESHOLD` it's treated as a match to an existing cluster, otherwise the LLM classifies it (possibly proposing a brand-new category) — there's a two-step draft/confirm flow (`draft` flag, `confirmedCategory`/`confirmedCanonicalText`) so the UI can show the proposed classification before committing the cluster/problem write.
+4. Embed the text, `searchClusters()` for nearest centroid; if cosine score ≥ `NEXT_PUBLIC_SIMILARITY_THRESHOLD` it's treated as a match to an existing cluster, otherwise the LLM classifies it within the active categories or rejects it as out of scope — there's a two-step draft/confirm flow (`draft` flag, `confirmedCategory`/`confirmedCanonicalText`) so the UI can show the proposed classification before committing the cluster/problem write.
 
 ### Auth boundary
 

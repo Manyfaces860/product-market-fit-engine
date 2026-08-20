@@ -1,7 +1,8 @@
 import { MetadataRoute } from 'next';
 import { getClusters, getCategories } from '@/lib/mongodb';
+import { getSiteUrl } from '@/lib/site-url';
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const SITE_URL = getSiteUrl();
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
